@@ -6,6 +6,8 @@ typedef unsigned char u8;
 
 typedef size_t (*inst_proc)(u8 const*, size_t);
 
+#define EXTEND_8TO16(n) ((n & 0xf0) ? (n | (u16)0xff00) : (u16)n)
+
 static inst_proc instruction_table[256];
 
 enum e_reg {
@@ -132,7 +134,7 @@ static size_t mov_wide_to(u8 const *stream, size_t len) {
 				return 1;
 			}
 		case 1:
-			printf("mov %s, [%s + %hhu]\n", reg_names[a], eac_table[b], stream[1]);
+			printf("mov %s, [%s + %hu]\n", reg_names[a], eac_table[b], EXTEND_8TO16(stream[1]));
 			return 2;
 		case 2:
 			printf("mov %s, [%s + %hu]\n", reg_names[a], eac_table[b], stream[1] | ((u16)stream[2] << 8));
@@ -167,7 +169,7 @@ static size_t mov_wide_from(u8 const *stream, size_t len) {
 				return 1;
 			}
 		case 1:
-			printf("mov [%s + %hhu], %s\n", eac_table[b], stream[1], reg_names[a]);
+			printf("mov [%s + %hu], %s\n", eac_table[b], EXTEND_8TO16(stream[1]), reg_names[a]);
 			return 2;
 		case 2:
 			printf("mov [%s + %hu], %s\n", eac_table[b], stream[1] | ((u16)stream[2] << 8), reg_names[a]);
@@ -205,6 +207,94 @@ FUNC_IMM2WIDE(mov_imm2bp, REG_BP)
 FUNC_IMM2WIDE(mov_imm2si, REG_SI)
 FUNC_IMM2WIDE(mov_imm2di, REG_DI)
 
+static size_t mov_imm2narrow(u8 const *stream, size_t len) {
+	/* TODO(benjamin): assert len. */
+	u8 mod = (stream[0] & 0xc0) >> 6;
+	u8 b = stream[0] & 0x07;
+
+	switch (mod) {
+		case 0:
+			{
+				if (b == 6) {
+					/* direct address */
+					printf("mov [%hu], byte %hu\n", stream[1] | ((u16)stream[2] << 8), EXTEND_8TO16(stream[3]));
+					return 4;
+				} else {
+					printf("mov [%s], byte %hu\n", eac_table[b], EXTEND_8TO16(stream[1]));
+					return 2;
+				}
+			}
+		case 1:
+			printf("mov [%s + %hu], byte %hu\n", eac_table[b], EXTEND_8TO16(stream[1]), EXTEND_8TO16(stream[2]));
+			return 3;
+		case 2:
+			printf("mov [%s + %hu], byte %hu\n", eac_table[b], stream[1] | ((u16)stream[2] << 8), EXTEND_8TO16(stream[3]));
+			return 4;
+		case 3:
+			printf("mov %s, byte %hu\n", reg_names[b], EXTEND_8TO16(stream[1]));
+			return 1;
+	}
+
+	return 1;
+}
+
+
+static size_t mov_imm2wide(u8 const *stream, size_t len) {
+	/* TODO(benjamin): assert len. */
+	u8 mod = (stream[0] & 0xc0) >> 6;
+	u8 b = stream[0] & 0x07;
+
+	switch (mod) {
+		case 0:
+			{
+				if (b == 6) {
+					/* direct address */
+					printf("mov [%hu], word %hu\n", stream[1] | ((u16)stream[2] << 8), stream[3] | ((u16)stream[4] << 8));
+					return 5;
+				} else {
+					printf("mov [%s], word %hu\n", eac_table[b], stream[1] | ((u16)stream[2] << 8));
+					return 3;
+				}
+			}
+		case 1:
+			printf("mov [%s + %hu], word %hu\n", eac_table[b], EXTEND_8TO16(stream[1]), stream[2] | ((u16)stream[3] << 8));
+			return 4;
+		case 2:
+			printf("mov [%s + %hu], word %hu\n", eac_table[b], stream[1] | ((u16)stream[2] << 8), stream[3] | ((u16)stream[4] << 8));
+			return 5;
+		case 3:
+			b |= 0x8;
+			printf("mov %s, word %hu\n", reg_names[b], stream[1] | ((u16)stream[2] << 8));
+			return 1;
+	}
+
+	return 1;
+}
+
+static size_t mov_mem2al(u8 const *stream, size_t len) {
+	/* TODO(benjamin): assert len. */
+	printf("mov al, [%hu]\n", stream[0] | ((u16)stream[1] << 8));
+	return 2;
+}
+
+static size_t mov_mem2ax(u8 const *stream, size_t len) {
+	/* TODO(benjamin): assert len. */
+	printf("mov ax, [%hu]\n", stream[0] | ((u16)stream[1] << 8));
+	return 2;
+}
+
+static size_t mov_al2mem(u8 const *stream, size_t len) {
+	/* TODO(benjamin): assert len. */
+	printf("mov [%hu], al\n", stream[0] | ((u16)stream[1] << 8));
+	return 2;
+}
+
+static size_t mov_ax2mem(u8 const *stream, size_t len) {
+	/* TODO(benjamin): assert len. */
+	printf("mov [%hu], ax\n", stream[0] | ((u16)stream[1] << 8));
+	return 2;
+}
+
 #define PROGRAM_BUF_SIZE 2048
 int main(void) {
 	u8 program[PROGRAM_BUF_SIZE];
@@ -213,6 +303,11 @@ int main(void) {
 	instruction_table[0x89] = &mov_wide_from;
 	instruction_table[0x8a] = &mov_narrow_to;
 	instruction_table[0x8b] = &mov_wide_to;
+
+	instruction_table[0xa0] = &mov_mem2al;
+	instruction_table[0xa1] = &mov_mem2ax;
+	instruction_table[0xa2] = &mov_al2mem;
+	instruction_table[0xa3] = &mov_ax2mem;
 
 	instruction_table[0xb0] = &mov_imm2al;
 	instruction_table[0xb1] = &mov_imm2cl;
@@ -230,6 +325,9 @@ int main(void) {
 	instruction_table[0xbd] = &mov_imm2bp;
 	instruction_table[0xbe] = &mov_imm2si;
 	instruction_table[0xbf] = &mov_imm2di;
+
+	instruction_table[0xc6] = &mov_imm2narrow;
+	instruction_table[0xc7] = &mov_imm2wide;
 
 	size_t program_len = read(0, program, 512);
 	if (program_len == -1) {
@@ -252,13 +350,13 @@ int main(void) {
 
 	printf("bits 16\n");
 	for (size_t i = 0; i < program_len;) {
-		/* dprintf(2, "inst: 0x%hhx\n", program[i]); */
 		inst_proc proc = instruction_table[program[i]];
-		i += 1;
 		if (proc) {
+			i += 1;
 			i += proc(program + i, program_len - i);
 		} else {
 			printf("unrecognized instruction: 0x%02hhx\n", program[i]);
+			i += 1;
 		}
 	}
 
