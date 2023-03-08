@@ -1,2 +1,2 @@
-emu: src/main.c
-	gcc -o emu src/main.c
+decoder: src/main.c
+	gcc -o $@ src/main.c
