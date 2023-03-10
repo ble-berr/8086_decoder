@@ -44,54 +44,81 @@ static char const *eac_table[8] = {
 	"bx",
 };
 
-#define MOV_ARG_BUF_SIZE 24
-static size_t mov_r_to_rm(u8 const *stream, size_t len) {
-	if (len < 2) {
+#define INST_ARG_BUF_SIZE 24
+struct r_to_rm_pair {
+	char r[INST_ARG_BUF_SIZE];
+	char rm[INST_ARG_BUF_SIZE];
+};
+
+static size_t render_r_to_rm(struct r_to_rm_pair *pair, u8 const *stream, size_t len) {
+	u8 step = 2;
+	if (len < step) {
 		return 0;
 	}
 
-	bool const from_rm = !!(stream[0] & 0x2);
-	bool const wide = !!(stream[0] & 0x1);
+	bool const wide = (stream[0] & 0x1) != 0;
 	u8 const mod = (stream[1] >> 6);
-	u8 a = (stream[1] & 0x38) >> 3;
-	u8 b = (stream[1] & 0x07);
-	u8 to[MOV_ARG_BUF_SIZE] = {};
-	u8 from[MOV_ARG_BUF_SIZE] = {};
-	u8 consumed = 2;
+	u8 r = (stream[1] >> 3) & 0x7;
+	u8 rm = stream[1] & 0x07;
 
 	if (wide) {
-		a |= 0x08;
+		r |= 0x08;
 	}
-	snprintf(from_rm?to:from, MOV_ARG_BUF_SIZE, "%s", reg_names[a]);
+	snprintf(&pair.r, INST_ARG_BUF_SIZE, "%s", reg_names[r]);
 
 	switch (mod) {
-		case 3:
-			if (wide) {
-				b |= 0x08;
-			}
-			snprintf(from_rm?from:to, MOV_ARG_BUF_SIZE, "%s", reg_names[b]);
-			break;
-		case 2:
-			snprintf(from_rm?from:to, MOV_ARG_BUF_SIZE, "[%s + %hu]", eac_table[b], stream[2] | ((u16)stream[3] << 8));
-			consumed += 2;
-			break;
-		case 1:
-			snprintf(from_rm?from:to, MOV_ARG_BUF_SIZE, "[%s + %hu]", eac_table[b], EXTEND_8TO16(stream[2]));
-			consumed += 1;
-			break;
 		case 0:
 			if (b == 6) {
+				step += 2;
+				if (len < step) {
+					return 0;
+				}
 				/* direct address */
-				snprintf(from_rm?from:to, MOV_ARG_BUF_SIZE, "[%hu]", stream[2] | ((u16)stream[3] << 8));
-				consumed += 2;
+				snprintf(&pair.rm, INST_ARG_BUF_SIZE, "[%hu]", stream[2] | ((u16)stream[3] << 8));
 			} else {
-				snprintf(from_rm?from:to, MOV_ARG_BUF_SIZE, "[%s]", eac_table[b]);
+				snprintf(&pair.rm, INST_ARG_BUF_SIZE, "[%s]", eac_table[b]);
 			}
+			break;
+		case 1:
+			step += 1;
+			if (len < step) {
+				return 0;
+			}
+			snprintf(&pair.rm, INST_ARG_BUF_SIZE, "[%s + %hu]", eac_table[b], EXTEND_8TO16(stream[2]));
+			break;
+		case 2:
+			step += 2;
+			if (len < step) {
+				return 0;
+			}
+			snprintf(&pair.rm, INST_ARG_BUF_SIZE, "[%s + %hu]", eac_table[b], stream[2] | ((u16)stream[3] << 8));
+			break;
+		case 3:
+			if (wide) {
+				rm |= 0x08;
+			}
+			snprintf(&pair.rm, INST_ARG_BUF_SIZE, "%s", reg_names[b]);
 			break;
 	}
 
-	printf("mov %s, %s\n", to, from);
-	return consumed;
+	return step;
+}
+
+static size_t decode_r_to_rm(u8 const *stream, size_t len, char const *inst) {
+	struct r_to_rm_pair pair;
+	u8 step = render_r_to_rm(&pair, stream, len);
+
+	if (step == 0) {
+		return 0;
+	}
+
+	bool const reverse = (stream[0] & 0x2) != 0;
+
+	if (reverse) {
+		printf("%s %s, %s\n", inst, pair.r, pair.rm);
+	} else {
+		printf("%s %s, %s\n", inst, pair.rm, pair.r);
+	}
 }
 
 static size_t mov_immediate_to_reg(u8 const *stream, size_t len) {
@@ -143,7 +170,6 @@ static size_t mov_imm2narrow(u8 const *stream, size_t len) {
 
 	return 2;
 }
-
 
 static size_t mov_imm2wide(u8 const *stream, size_t len) {
 	/* TODO(benjamin): assert len. */
@@ -208,17 +234,41 @@ static size_t dispatch(u8 const *stream, size_t len) {
 
 	switch (stream[0] >> 4) {
 		case 0x0:
-			/* not implemented. */
-			return 0;
+			switch (stream[0] & 0xf) {
+				case 0x0:
+				case 0x1:
+				case 0x2:
+				case 0x3:
+					return decode_r_to_rm(stream, len, "add");
+				default:
+					/* not implemented. */
+					return 0;
+			}
 		case 0x1:
 			/* not implemented. */
 			return 0;
 		case 0x2:
-			/* not implemented. */
-			return 0;
+			switch (stream[0] & 0xf) {
+				case 0x8:
+				case 0x9:
+				case 0xa:
+				case 0xb:
+					return decode_r_to_rm(stream, len, "sub");
+				default:
+					/* not implemented. */
+					return 0;
+			}
 		case 0x3:
-			/* not implemented. */
-			return 0;
+			switch (stream[0] & 0xf) {
+				case 0x8:
+				case 0x9:
+				case 0xa:
+				case 0xb:
+					return decode_r_to_rm(stream, len, "cmp");
+				default:
+					/* not implemented. */
+					return 0;
+			}
 		case 0x4:
 			/* not implemented. */
 			return 0;
@@ -237,7 +287,7 @@ static size_t dispatch(u8 const *stream, size_t len) {
 				case 0x89:
 				case 0x8a:
 				case 0x8b:
-					return mov_r_to_rm(stream, len);
+					return decode_r_to_rm(stream, len, "mov");
 				default:
 					/* not implemented. */
 					return 0;
