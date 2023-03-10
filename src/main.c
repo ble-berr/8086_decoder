@@ -64,19 +64,19 @@ static size_t render_r_to_rm(struct r_to_rm_pair *pair, u8 const *stream, size_t
 	if (wide) {
 		r |= 0x08;
 	}
-	snprintf(&pair.r, INST_ARG_BUF_SIZE, "%s", reg_names[r]);
+	snprintf(pair->r, INST_ARG_BUF_SIZE, "%s", reg_names[r]);
 
 	switch (mod) {
 		case 0:
-			if (b == 6) {
+			if (rm == 6) {
 				step += 2;
 				if (len < step) {
 					return 0;
 				}
 				/* direct address */
-				snprintf(&pair.rm, INST_ARG_BUF_SIZE, "[%hu]", stream[2] | ((u16)stream[3] << 8));
+				snprintf(pair->rm, INST_ARG_BUF_SIZE, "[%hu]", stream[2] | ((u16)stream[3] << 8));
 			} else {
-				snprintf(&pair.rm, INST_ARG_BUF_SIZE, "[%s]", eac_table[b]);
+				snprintf(pair->rm, INST_ARG_BUF_SIZE, "[%s]", eac_table[rm]);
 			}
 			break;
 		case 1:
@@ -84,20 +84,20 @@ static size_t render_r_to_rm(struct r_to_rm_pair *pair, u8 const *stream, size_t
 			if (len < step) {
 				return 0;
 			}
-			snprintf(&pair.rm, INST_ARG_BUF_SIZE, "[%s + %hu]", eac_table[b], EXTEND_8TO16(stream[2]));
+			snprintf(pair->rm, INST_ARG_BUF_SIZE, "[%s + %hu]", eac_table[rm], EXTEND_8TO16(stream[2]));
 			break;
 		case 2:
 			step += 2;
 			if (len < step) {
 				return 0;
 			}
-			snprintf(&pair.rm, INST_ARG_BUF_SIZE, "[%s + %hu]", eac_table[b], stream[2] | ((u16)stream[3] << 8));
+			snprintf(pair->rm, INST_ARG_BUF_SIZE, "[%s + %hu]", eac_table[rm], stream[2] | ((u16)stream[3] << 8));
 			break;
 		case 3:
 			if (wide) {
 				rm |= 0x08;
 			}
-			snprintf(&pair.rm, INST_ARG_BUF_SIZE, "%s", reg_names[b]);
+			snprintf(pair->rm, INST_ARG_BUF_SIZE, "%s", reg_names[rm]);
 			break;
 	}
 
@@ -119,6 +119,8 @@ static size_t decode_r_to_rm(u8 const *stream, size_t len, char const *inst) {
 	} else {
 		printf("%s %s, %s\n", inst, pair.rm, pair.r);
 	}
+
+	return step;
 }
 
 static size_t mov_immediate_to_reg(u8 const *stream, size_t len) {
