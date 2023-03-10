@@ -283,10 +283,10 @@ static size_t dispatch(u8 const *stream, size_t len) {
 			return 0;
 		case 0x8:
 			switch (stream[0] & 0xf) {
-				case 0x88:
-				case 0x89:
-				case 0x8a:
-				case 0x8b:
+				case 0x8:
+				case 0x9:
+				case 0xa:
+				case 0xb:
 					return decode_r_to_rm(stream, len, "mov");
 				default:
 					/* not implemented. */
@@ -311,8 +311,7 @@ static size_t dispatch(u8 const *stream, size_t len) {
 			}
 			return 0;
 		case 0xb:
-			mov_immediate_to_reg(stream, len);
-			return 0;
+			return mov_immediate_to_reg(stream, len);
 		case 0xc:
 			switch (stream[0] & 0xf) {
 				case 0x6:
