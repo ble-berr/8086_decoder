@@ -3,6 +3,7 @@
 
 typedef unsigned short u16;
 typedef unsigned char u8;
+typedef char s8;
 typedef unsigned char bool;
 
 typedef size_t (*inst_proc)(u8 const*, size_t);
@@ -229,6 +230,34 @@ static size_t mov_ax2mem(u8 const *stream, size_t len) {
 	return 3;
 }
 
+static char const *const condition_jump_mnemonics[0xf + 1] = {
+	"jo",
+	"jno",
+	"jb",
+	"jnb",
+	"je",
+	"jne",
+	"jbe",
+	"jnbe",
+	"js",
+	"jns",
+	"jp",
+	"jnp",
+	"jl",
+	"jnl",
+	"jle",
+	"jnle",
+};
+
+static size_t conditional_jump(u8 const *stream, size_t len) {
+	if (len < 2) {
+		return 0;
+	}
+	/* TODO(benjamin): typesafe signed conversion. */
+	printf("%s $%+hhi+0\n", condition_jump_mnemonics[stream[0] & 0xf], (s8)stream[1]);
+	return 2;
+}
+
 static size_t dispatch(u8 const *stream, size_t len) {
 	if (len == 0) {
 		return 0;
@@ -281,8 +310,7 @@ static size_t dispatch(u8 const *stream, size_t len) {
 			/* not implemented. */
 			return 0;
 		case 0x7:
-			/* not implemented. */
-			return 0;
+			return conditional_jump(stream, len);
 		case 0x8:
 			switch (stream[0] & 0xf) {
 				case 0x8:
