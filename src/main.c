@@ -9,8 +9,6 @@ typedef size_t (*inst_proc)(u8 const*, size_t);
 
 #define EXTEND_8TO16(n) ((n & 0xf0) ? (n | (u16)0xff00) : (u16)n)
 
-static inst_proc instruction_table[256];
-
 enum e_reg {
 	REG_AL,
 	REG_CL,
@@ -203,41 +201,95 @@ static size_t mov_ax2mem(u8 const *stream, size_t len) {
 	return 3;
 }
 
+static size_t dispatch(u8 const *stream, size_t len) {
+	if (len == 0) {
+		return 0;
+	}
+
+	switch (stream[0] >> 4) {
+		case 0x0:
+			/* not implemented. */
+			return 0;
+		case 0x1:
+			/* not implemented. */
+			return 0;
+		case 0x2:
+			/* not implemented. */
+			return 0;
+		case 0x3:
+			/* not implemented. */
+			return 0;
+		case 0x4:
+			/* not implemented. */
+			return 0;
+		case 0x5:
+			/* not implemented. */
+			return 0;
+		case 0x6:
+			/* not implemented. */
+			return 0;
+		case 0x7:
+			/* not implemented. */
+			return 0;
+		case 0x8:
+			switch (stream[0] & 0xf) {
+				case 0x88:
+				case 0x89:
+				case 0x8a:
+				case 0x8b:
+					return mov_r_to_rm(stream, len);
+				default:
+					/* not implemented. */
+					return 0;
+			}
+		case 0x9:
+			/* not implemented. */
+			return 0;
+		case 0xa:
+			switch (stream[0] & 0xf) {
+				case 0x0:
+					return mov_mem2al(stream, len);
+				case 0x1:
+					return mov_mem2ax(stream, len);
+				case 0x2:
+					return mov_al2mem(stream, len);
+				case 0x3:
+					return mov_ax2mem(stream, len);
+				default:
+					/* not implemented. */
+					return 0;
+			}
+			return 0;
+		case 0xb:
+			mov_immediate_to_reg(stream, len);
+			return 0;
+		case 0xc:
+			switch (stream[0] & 0xf) {
+				case 0x6:
+					return mov_imm2narrow(stream, len);
+				case 0x7:
+					return mov_imm2wide(stream, len);
+				default:
+					/* not implemented. */
+					return 0;
+			}
+		case 0xd:
+			/* not implemented. */
+			return 0;
+		case 0xe:
+			/* not implemented. */
+			return 0;
+		case 0xf:
+			/* not implemented. */
+			return 0;
+	}
+}
+
 #define PROGRAM_BUF_SIZE 2048
 int main(void) {
 	u8 program[PROGRAM_BUF_SIZE];
 
-	instruction_table[0x88] = &mov_r_to_rm;
-	instruction_table[0x89] = &mov_r_to_rm;
-	instruction_table[0x8a] = &mov_r_to_rm;
-	instruction_table[0x8b] = &mov_r_to_rm;
-
-	instruction_table[0xa0] = &mov_mem2al;
-	instruction_table[0xa1] = &mov_mem2ax;
-	instruction_table[0xa2] = &mov_al2mem;
-	instruction_table[0xa3] = &mov_ax2mem;
-
-	instruction_table[0xb0] = &mov_immediate_to_reg;
-	instruction_table[0xb1] = &mov_immediate_to_reg;
-	instruction_table[0xb2] = &mov_immediate_to_reg;
-	instruction_table[0xb3] = &mov_immediate_to_reg;
-	instruction_table[0xb4] = &mov_immediate_to_reg;
-	instruction_table[0xb5] = &mov_immediate_to_reg;
-	instruction_table[0xb6] = &mov_immediate_to_reg;
-	instruction_table[0xb7] = &mov_immediate_to_reg;
-	instruction_table[0xb8] = &mov_immediate_to_reg;
-	instruction_table[0xb9] = &mov_immediate_to_reg;
-	instruction_table[0xba] = &mov_immediate_to_reg;
-	instruction_table[0xbb] = &mov_immediate_to_reg;
-	instruction_table[0xbc] = &mov_immediate_to_reg;
-	instruction_table[0xbd] = &mov_immediate_to_reg;
-	instruction_table[0xbe] = &mov_immediate_to_reg;
-	instruction_table[0xbf] = &mov_immediate_to_reg;
-
-	instruction_table[0xc6] = &mov_imm2narrow;
-	instruction_table[0xc7] = &mov_imm2wide;
-
-	size_t program_len = read(0, program, 512);
+	size_t program_len = read(0, program, PROGRAM_BUF_SIZE);
 	if (program_len == -1) {
 		return 1;
 	}
@@ -258,13 +310,12 @@ int main(void) {
 
 	printf("bits 16\n");
 	for (size_t i = 0; i < program_len;) {
-		inst_proc const proc = instruction_table[program[i]];
-		size_t const consumed = proc ? proc(program + i, program_len - i) : 0;
-		if (!consumed) {
+		size_t const step = dispatch(program + i, program_len - i);
+		if (!step) {
 			printf("unrecognized instruction at 0x%zx: 0x%02hhx\n", i, program[i]);
 			return 0;
 		}
-		i += consumed;
+		i += step;
 	}
 
 	return 0;
