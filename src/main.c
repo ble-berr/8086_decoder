@@ -482,7 +482,8 @@ static size_t dispatch(u8 const *stream, size_t len) {
 		case 0xf:
 			/* not implemented. */
 			return 0;
-		default: /* unreachable */
+		default:
+			/* unreachable */
 			return 0;
 	}
 }
