@@ -2,8 +2,9 @@
 #include <unistd.h>
 
 typedef unsigned short u16;
+typedef signed short s16;
 typedef unsigned char u8;
-typedef char s8;
+typedef signed char s8;
 typedef unsigned char bool;
 
 typedef size_t (*inst_proc)(u8 const*, size_t);
