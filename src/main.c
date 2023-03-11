@@ -187,15 +187,13 @@ static size_t mov_imm2wide(u8 const *stream, size_t len) {
 
 	switch (mod) {
 		case 0:
-			{
-				if (b == 6) {
-					/* direct address */
-					printf("mov [%hu], word %hu\n", DATA16(stream[2], stream[3]), DATA16(stream[4], stream[5]));
-					return 6;
-				} else {
-					printf("mov [%s], word %hu\n", eac_table[b], DATA16(stream[2], stream[3]));
-					return 4;
-				}
+			if (b == 6) {
+				/* direct address */
+				printf("mov [%hu], word %hu\n", DATA16(stream[2], stream[3]), DATA16(stream[4], stream[5]));
+				return 6;
+			} else {
+				printf("mov [%s], word %hu\n", eac_table[b], DATA16(stream[2], stream[3]));
+				return 4;
 			}
 		case 1:
 			printf("mov [%s + %hu], word %hu\n", eac_table[b], SIGN_EXTEND(stream[2]), DATA16(stream[3], stream[4]));
