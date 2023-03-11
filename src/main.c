@@ -128,6 +128,18 @@ static size_t decode_r_to_rm(u8 const *stream, size_t len, char const *inst) {
 	return step;
 }
 
+static size_t decode_r_vs_rm(u8 const *stream, size_t len, char const *inst) {
+	struct r_to_rm_pair pair;
+	u8 step = render_r_to_rm(&pair, stream, len);
+
+	if (step == 0) {
+		return 0;
+	}
+
+	printf("%s %s, %s\n", inst, pair.r, pair.rm);
+	return step;
+}
+
 static size_t mov_immediate_to_reg(u8 const *stream, size_t len) {
 	u8 step = 2;
 	if (len < step) {
@@ -449,6 +461,12 @@ static size_t dispatch(u8 const *stream, size_t len) {
 				case 0x2:
 				case 0x3:
 					return op_rm_immediate(stream, len);
+				case 0x4:
+				case 0x5:
+					return decode_r_vs_rm(stream, len, "test");
+				case 0x6:
+				case 0x7:
+					return decode_r_vs_rm(stream, len, "xchg");
 				case 0x8:
 				case 0x9:
 				case 0xa:
