@@ -499,6 +499,44 @@ static size_t test_acc_immediate(bool wide, u8 const *stream, size_t len) {
 	return step;
 }
 
+static char const *const shift_rot_mnemonics[8] = {
+	"rol",
+	"ror",
+	"rcl",
+	"rcr",
+	"shl",
+	"shr",
+	NULL,
+	"sar",
+};
+
+static size_t shift_rot_rm(u8 const *stream, size_t len) {
+	u8 step = 2;
+	if (len < step) {
+		return 0;
+	}
+
+	bool const cl = stream[0] & 2u;
+	bool const wide = stream[0] & 1u;
+
+	u8 const mod = stream[1] >> 6u;
+	u8 const op = (stream[1] & 070u) >> 3u;
+	u8 const rm = stream[1] & 7u;
+
+	if (op == 6) {
+		return 0;
+	}
+
+	rm_buf_t rm_buf;
+	step += render_rm(rm_buf, wide, mod, rm, stream + step, len - step);
+	if (len < step) {
+		return 0;
+	}
+
+	printf("%s %s, %s\n", shift_rot_mnemonics[op], rm_buf, cl?"cl":"1");
+	return step;
+}
+
 static size_t dispatch(u8 const *stream, size_t len) {
 	if (len == 0) {
 		return 0;
@@ -697,8 +735,7 @@ static size_t dispatch(u8 const *stream, size_t len) {
 				case 0x1:
 				case 0x2:
 				case 0x3:
-					/* TODO(benjamin): not implemented. */
-					return 0;
+					return shift_rot_rm(stream, len);
 				case 0x4:
 					printf("aam\n");
 					return 1;
