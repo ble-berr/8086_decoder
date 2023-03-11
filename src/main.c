@@ -493,7 +493,7 @@ static size_t test_acc_immediate(bool wide, u8 const *stream, size_t len) {
 	if (wide) {
 		printf("test ax, %hu", DATA16(stream[1], stream[2]));
 	} else {
-		printf("test al, %hu", SIGN_EXTEND(stream[1]));
+		printf("test al, %hu", stream[1]);
 	}
 
 	return step;
