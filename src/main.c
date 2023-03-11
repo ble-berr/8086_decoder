@@ -402,6 +402,8 @@ static size_t dispatch(u8 const *stream, size_t len) {
 				case 0xf:
 					/* unused. */
 					return 0;
+				default: /* unreachable */
+					return 0;
 			}
 		case 0x1:
 			switch (stream[0] & 0xf) {
@@ -428,6 +430,8 @@ static size_t dispatch(u8 const *stream, size_t len) {
 				case 0xe:
 				case 0xf:
 					/* not implemented. */
+					return 0;
+				default: /* unreachable */
 					return 0;
 			}
 		case 0x2:
@@ -456,6 +460,8 @@ static size_t dispatch(u8 const *stream, size_t len) {
 				case 0xf:
 					/* not implemented. */
 					return 0;
+				default: /* unreachable */
+					return 0;
 			}
 		case 0x3:
 			switch (stream[0] & 0xf) {
@@ -482,6 +488,8 @@ static size_t dispatch(u8 const *stream, size_t len) {
 				case 0xe:
 				case 0xf:
 					/* not implemented. */
+					return 0;
+				default: /* unreachable */
 					return 0;
 			}
 		case 0x4:
@@ -557,6 +565,8 @@ static size_t dispatch(u8 const *stream, size_t len) {
 		case 0xf:
 			/* not implemented. */
 			return 0;
+		default: /* unreachable */
+			return 0;
 	}
 }
 
@@ -565,7 +575,7 @@ int main(void) {
 	u8 program[PROGRAM_BUF_SIZE];
 
 	size_t program_len = read(0, program, PROGRAM_BUF_SIZE);
-	if (program_len == -1) {
+	if (program_len == (size_t)-1) {
 		return 1;
 	}
 	if (program_len == PROGRAM_BUF_SIZE) {
