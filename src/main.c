@@ -9,7 +9,7 @@ typedef unsigned char bool;
 
 typedef size_t (*inst_proc)(u8 const*, size_t);
 
-#define SIGN_EXTEND(n) ((n & (u16)0xf0) ? (n | (u16)0xff00) : (u16)n)
+#define SIGN_EXTEND(n) ((n & (u8)0x80) ? (n | (u16)0xff00) : (u16)n)
 #define DATA16(data_lo, data_hi) (data_lo | (data_hi << (u16)8))
 
 enum e_reg {
