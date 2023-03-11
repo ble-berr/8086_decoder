@@ -562,8 +562,24 @@ static size_t dispatch(u8 const *stream, size_t len) {
 					return 0;
 			}
 		case 0x9:
-			/* not implemented. */
-			return 0;
+			switch (stream[0] & 0xf) {
+				case 0x0:
+					/* NOTE(benjamin): xchg ax, ax */
+					printf("nop\n");
+					return 1;
+				case 0x1:
+				case 0x2:
+				case 0x3:
+				case 0x4:
+				case 0x5:
+				case 0x6:
+				case 0x7:
+					printf("xchg ax, %s\n", reg_names[stream[0] | 8u]);
+					return 1;
+				default:
+					/* not implemented. */
+					return 0;
+			}
 		case 0xa:
 			switch (stream[0] & 0xf) {
 				case 0x0:
