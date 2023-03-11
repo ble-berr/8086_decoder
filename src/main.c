@@ -87,14 +87,16 @@ static size_t render_r_to_rm(struct r_to_rm_pair *pair, u8 const *stream, size_t
 			if (len < step) {
 				return 0;
 			}
-			snprintf(pair->rm, INST_ARG_BUF_SIZE, "[%s + %hu]", eac_table[rm], SIGN_EXTEND(stream[2]));
+			/* TODO(benjamin): standard compliant signed conversion. */
+			snprintf(pair->rm, INST_ARG_BUF_SIZE, "[%s + %hi]", eac_table[rm], (s16)SIGN_EXTEND(stream[2]));
 			break;
 		case 2:
 			step += 2;
 			if (len < step) {
 				return 0;
 			}
-			snprintf(pair->rm, INST_ARG_BUF_SIZE, "[%s + %hu]", eac_table[rm], DATA16(stream[2], stream[3]));
+			/* TODO(benjamin): standard compliant signed conversion. */
+			snprintf(pair->rm, INST_ARG_BUF_SIZE, "[%s + %hi]", eac_table[rm], (s16)DATA16(stream[2], stream[3]));
 			break;
 		case 3:
 			if (wide) {
