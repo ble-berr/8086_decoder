@@ -8,8 +8,8 @@ typedef unsigned char bool;
 
 typedef size_t (*inst_proc)(u8 const*, size_t);
 
-#define SIGN_EXTEND(n) ((n & 0xf0) ? (n | (u16)0xff00) : (u16)n)
-#define DATA16(data_lo, data_hi) (data_lo | ((u16)data_hi << 8))
+#define SIGN_EXTEND(n) ((n & (u16)0xf0) ? (n | (u16)0xff00) : (u16)n)
+#define DATA16(data_lo, data_hi) (data_lo | (data_hi << (u16)8))
 
 enum e_reg {
 	REG_AL,
@@ -126,22 +126,27 @@ static size_t decode_r_to_rm(u8 const *stream, size_t len, char const *inst) {
 }
 
 static size_t mov_immediate_to_reg(u8 const *stream, size_t len) {
-	if (len < 2) {
+	u8 step = 2;
+	if (len < step) {
 		return 0;
 	}
 	bool const wide = !!(stream[0] & 0x08);
 	bool reg = stream[0] & 0x07;
-	u16 immediate = stream[1];
-	u8 consumed = 2;
+	u16 immediate;
 
 	if (wide) {
+		step += 1;
+		if (len < step) {
+			return 0;
+		}
 		reg |= 0x08;
-		immediate |= stream[2] << 8;
-		consumed += 1;
+		immediate = DATA16(stream[1], stream[2]);
+	} else {
+		immediate = SIGN_EXTEND(stream[1]);
 	}
 
 	printf("mov %s, %hu\n", reg_names[reg], immediate);
-	return consumed;
+	return step;
 }
 
 static size_t mov_imm2narrow(u8 const *stream, size_t len) {
