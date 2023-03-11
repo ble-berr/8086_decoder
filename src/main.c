@@ -776,11 +776,11 @@ static size_t dispatch(u8 const *stream, size_t len) {
 					/* TODO(benjamin): not implemented: out ax, dx */
 					return 0;
 				default:
-					/* not implemented. */
+					/* unreachable */
 					return 0;
 			}
 		case 0xf:
-			/* not implemented. */
+			/* TODO(benjamin): not implemented. */
 			return 0;
 		default:
 			/* unreachable */
