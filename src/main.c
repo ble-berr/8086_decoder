@@ -423,6 +423,8 @@ static size_t segment_op(u8 const *stream, size_t len) {
 		bool const pop = (stream[0] & 1u) != 0;
 		printf("%s %s\n", pop?"pop":"push", segment_register_names[reg]);
 	}
+
+	return 1;
 }
 
 static size_t dispatch(u8 const *stream, size_t len) {
@@ -446,16 +448,16 @@ static size_t dispatch(u8 const *stream, size_t len) {
 					return op_acc_immediate(stream, len, arithmetic_mnemonics[(stream[0] & 070u) >> 3]);
 				case 6:
 				case 7:
-					return segment_op(stream, len)
+					return segment_op(stream, len);
 				default:
 					/* unreachable */
 					return 0;
 			}
 		case 0x4:
-			printf("%s %s\n", (stream[0] & 8u)?"dec":"inc", register_names[stream[0] & 7u]);
+			printf("%s %s\n", (stream[0] & 8u)?"dec":"inc", reg_names[stream[0] & 7u]);
 			return 1;
 		case 0x5:
-			printf("%s %s\n", (stream[0] & 8u)?"pop":"push", register_names[stream[0] & 7u]);
+			printf("%s %s\n", (stream[0] & 8u)?"pop":"push", reg_names[stream[0] & 7u]);
 			return 1;
 		case 0x6:
 			/* unused. */
