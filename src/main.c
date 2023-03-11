@@ -244,7 +244,6 @@ static size_t op_rm_immediate(u8 const *stream, size_t len) {
 	u8 dest = stream[1] & 0x7;
 
 	char dest_str[INST_ARG_BUF_SIZE] = {};
-	u16 immediate;
 	switch (mod) {
 		case 0:
 			if (dest == 6) {
@@ -280,7 +279,14 @@ static size_t op_rm_immediate(u8 const *stream, size_t len) {
 			break;
 	}
 
-	if (wide && !sign_extend) {
+	u16 immediate;
+	if (sign_extend) {
+		step += 1;
+		if (len < step) {
+			return 0;
+		}
+		immediate = SIGN_EXTEND(stream[step - 1]);
+	} else if (wide) {
 		step += 2;
 		if (len < step) {
 			return 0;
@@ -291,7 +297,7 @@ static size_t op_rm_immediate(u8 const *stream, size_t len) {
 		if (len < step) {
 			return 0;
 		}
-		immediate = sign_extend ? SIGN_EXTEND(stream[step - 1]) : stream[step - 1];
+		immediate = stream[step - 1];
 	}
 
 	char const *mnemonic_table[8] = {
