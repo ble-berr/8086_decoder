@@ -324,7 +324,7 @@ static size_t mov_ax2mem(u8 const *stream, size_t len) {
 	return 3;
 }
 
-static char const *const condition_jump_mnemonics[0xf + 1] = {
+static char const *const conditional_jump_mnemonics[0x10] = {
 	"jo",
 	"jno",
 	"jb",
@@ -347,8 +347,9 @@ static size_t conditional_jump(u8 const *stream, size_t len) {
 	if (len < 2) {
 		return 0;
 	}
-	/* TODO(benjamin): typesafe signed conversion. */
-	printf("%s $%+hhi+0\n", condition_jump_mnemonics[stream[0] & 0xf], (s8)stream[1]);
+	/* TODO(benjamin): standard compliant signed conversion. */
+	printf("%s $%+hhi+0\n", conditional_jump_mnemonics[stream[0] & 0xf], (s8)stream[1]);
+	return 2;
 }
 
 static char const *const extra_jump_mnemonics[0x4] = {
