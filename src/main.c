@@ -267,42 +267,12 @@ static size_t op_rm_immediate(u8 const *stream, size_t len) {
 
 	u8 const mod = stream[1] >> 6;
 	u8 const op = stream[1] >> 3 & 0x7;
-	u8 dest = stream[1] & 0x7;
+	u8 const rm = stream[1] & 0x7;
 
-	char dest_str[INST_ARG_BUF_SIZE] = {};
-	switch (mod) {
-		case 0:
-			if (dest == 6) {
-				/* direct address */
-				step += 2;
-				if (len < step) {
-					return 0;
-				}
-				snprintf(dest_str, INST_ARG_BUF_SIZE, "[%hu]", DATA16(stream[2], stream[3]));
-			} else {
-				snprintf(dest_str, INST_ARG_BUF_SIZE, "[%s]", eac_table[dest]);
-			}
-			break;
-		case 1:
-			step += 1;
-			if (len < step) {
-				return 0;
-			}
-			snprintf(dest_str, INST_ARG_BUF_SIZE, "[%s + %hu]", eac_table[dest], SIGN_EXTEND(stream[2]));
-			break;
-		case 2:
-			step += 2;
-			if (len < step) {
-				return 0;
-			}
-			snprintf(dest_str, INST_ARG_BUF_SIZE, "[%s + %hu]", eac_table[dest], DATA16(stream[2], stream[3]));
-			break;
-		case 3:
-			if (wide) {
-				dest |= 0x08;
-			}
-			snprintf(dest_str, INST_ARG_BUF_SIZE, "%s", reg_names[dest]);
-			break;
+	rm_buf_t rm_buf;
+	step += render_rm(rm_buf, wide, mod, rm, stream + step, len - step);
+	if (len < step) {
+		return 0;
 	}
 
 	u16 immediate;
@@ -326,7 +296,7 @@ static size_t op_rm_immediate(u8 const *stream, size_t len) {
 		immediate = stream[step - 1];
 	}
 
-	printf("%s %s %s, %hu\n", arithmetic_mnemonics[op], wide?"word":"byte", dest_str, immediate);
+	printf("%s %s %s, %hu\n", arithmetic_mnemonics[op], wide?"word":"byte", rm_buf, immediate);
 	return step;
 }
 
