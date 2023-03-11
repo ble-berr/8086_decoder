@@ -330,27 +330,17 @@ static size_t op_rm_immediate(u8 const *stream, size_t len) {
 	return step;
 }
 
-static size_t mov_mem2al(u8 const *stream, size_t len) {
+static char const *const acc_names[2] = { "al", "ax" };
+
+static size_t mov_mem2acc(bool wide, u8 const *stream, size_t len) {
 	/* TODO(benjamin): assert len. */
-	printf("mov al, [%hu]\n", DATA16(stream[1], stream[2]));
+	printf("mov %s, [%hu]\n", acc_names[wide], DATA16(stream[1], stream[2]));
 	return 3;
 }
 
-static size_t mov_mem2ax(u8 const *stream, size_t len) {
+static size_t mov_acc2mem(bool wide, u8 const *stream, size_t len) {
 	/* TODO(benjamin): assert len. */
-	printf("mov ax, [%hu]\n", DATA16(stream[1], stream[2]));
-	return 3;
-}
-
-static size_t mov_al2mem(u8 const *stream, size_t len) {
-	/* TODO(benjamin): assert len. */
-	printf("mov [%hu], al\n", DATA16(stream[1], stream[2]));
-	return 3;
-}
-
-static size_t mov_ax2mem(u8 const *stream, size_t len) {
-	/* TODO(benjamin): assert len. */
-	printf("mov [%hu], ax\n", DATA16(stream[1], stream[2]));
+	printf("mov [%hu], %s\n", DATA16(stream[1], stream[2]), acc_names[wide]);
 	return 3;
 }
 
@@ -494,6 +484,21 @@ static size_t pop_rm(u8 const *stream, size_t len) {
 	return step;
 }
 
+static size_t test_acc_immediate(bool wide, u8 const *stream, size_t len) {
+	u8 const step = 2 + wide;
+	if (len < step) {
+		return 0;
+	}
+
+	if (wide) {
+		printf("test ax, %hu", DATA16(stream[1], stream[2]));
+	} else {
+		printf("test al, %hu", SIGN_EXTEND(stream[1]));
+	}
+
+	return step;
+}
+
 static size_t dispatch(u8 const *stream, size_t len) {
 	if (len == 0) {
 		return 0;
@@ -605,18 +610,34 @@ static size_t dispatch(u8 const *stream, size_t len) {
 					return 0;
 			}
 		case 0xa:
-			switch (stream[0] & 0xf) {
-				case 0x0:
-					return mov_mem2al(stream, len);
-				case 0x1:
-					return mov_mem2ax(stream, len);
-				case 0x2:
-					return mov_al2mem(stream, len);
-				case 0x3:
-					return mov_ax2mem(stream, len);
-				default:
-					/* not implemented. */
-					return 0;
+			{
+				bool const wide = stream[0] & 1u;
+				switch ((stream[0] >> 1u) & 7u) {
+					case 0:
+						return mov_mem2acc(wide, stream, len);
+					case 1:
+						return mov_acc2mem(wide, stream, len);
+					case 2:
+						/* TODO(benjamin): not implemented: movs */
+						return 0;
+					case 3:
+						/* TODO(benjamin): not implemented: cmps */
+						return 0;
+					case 4:
+						return test_acc_immediate(wide, stream, len);
+					case 5:
+						/* TODO(benjamin): not implemented: stos */
+						return 0;
+					case 6:
+						/* TODO(benjamin): not implemented: lods */
+						return 0;
+					case 7:
+						/* TODO(benjamin): not implemented: scas */
+						return 0;
+					default:
+						/* unreachable */
+						return 0;
+				}
 			}
 		case 0xb:
 			return mov_immediate_to_reg(stream, len);
