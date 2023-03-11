@@ -1,11 +1,11 @@
 #include <stdio.h>
 #include <unistd.h>
+#include <stdbool.h>
 
 typedef unsigned short u16;
 typedef signed short s16;
 typedef unsigned char u8;
 typedef signed char s8;
-typedef unsigned char bool;
 
 typedef size_t (*inst_proc)(u8 const*, size_t);
 
@@ -427,6 +427,32 @@ static size_t segment_op(u8 const *stream, size_t len) {
 	return 1;
 }
 
+static size_t mov_seg_to_rm(u8 const *stream, size_t len) {
+	u8 step = 2;
+	if (len < step) {
+		return 0;
+	}
+
+	u8 const reverse = (stream[0] & 2u) != 0;
+	u8 const mod = stream[1] >> 6;
+	u8 const seg = (stream[1] & 030u) >> 3;
+	u8 const rm = stream[1] & 07u;
+
+	rm_buf_t rm_buf;
+	step += render_rm(rm_buf, true, mod, rm, stream + step, len - step);
+	if (len < step) {
+		return 0;
+	}
+
+	if (reverse) {
+		printf("mov %s, %s\n", segment_register_names[seg], rm_buf);
+	} else {
+		printf("mov %s, %s\n", rm_buf, segment_register_names[seg]);
+	}
+
+	return 0;
+}
+
 static size_t dispatch(u8 const *stream, size_t len) {
 	if (len == 0) {
 		return 0;
@@ -482,8 +508,18 @@ static size_t dispatch(u8 const *stream, size_t len) {
 				case 0xa:
 				case 0xb:
 					return decode_r_to_rm(stream, len, "mov");
-				default:
+				case 0xc:
+					return mov_seg_to_rm(stream, len);
+				case 0xd:
 					/* not implemented. */
+					return 0;
+				case 0xe:
+					return mov_seg_to_rm(stream, len);
+				case 0xf:
+					/* not implemented. */
+					return 0;
+				default:
+					/* unreachable */
 					return 0;
 			}
 		case 0x9:
