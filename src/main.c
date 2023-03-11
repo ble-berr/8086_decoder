@@ -454,6 +454,46 @@ static size_t mov_seg_to_rm(u8 const *stream, size_t len) {
 	return 0;
 }
 
+static size_t lea_rm_to_r(u8 const *stream, size_t len) {
+	u8 step = 2;
+	if (len < step) {
+		return 0;
+	}
+
+	u8 const mod = stream[1] >> 6u;
+	u8 const reg = ((stream[1] & 070u) >> 3u) | 8u;
+	u8 const rm = stream[1] & 07u;
+
+	rm_buf_t rm_buf;
+	step += render_rm(rm_buf, true, mod, rm, stream + step, len - step);
+	if (len < step) {
+		return 0;
+	}
+
+	printf("lea %s, %s\n", reg_names[reg], rm_buf);
+	return step;
+}
+
+static size_t pop_rm(u8 const *stream, size_t len) {
+	u8 step = 2;
+	if (len < step) {
+		return 0;
+	}
+
+	u8 const mod = stream[1] >> 6u;
+	/* TODO(benjamin): assert 070? */
+	u8 const rm = stream[1] & 07u;
+
+	rm_buf_t rm_buf;
+	step += render_rm(rm_buf, true, mod, rm, stream + step, len - step);
+	if (len < step) {
+		return 0;
+	}
+
+	printf("pop %s\n", rm_buf);
+	return step;
+}
+
 static size_t dispatch(u8 const *stream, size_t len) {
 	if (len == 0) {
 		return 0;
@@ -512,13 +552,11 @@ static size_t dispatch(u8 const *stream, size_t len) {
 				case 0xc:
 					return mov_seg_to_rm(stream, len);
 				case 0xd:
-					/* not implemented. */
-					return 0;
+					return lea_rm_to_r(stream, len);
 				case 0xe:
 					return mov_seg_to_rm(stream, len);
 				case 0xf:
-					/* not implemented. */
-					return 0;
+					return pop_rm(stream, len);
 				default:
 					/* unreachable */
 					return 0;
