@@ -231,8 +231,9 @@ static size_t op_rm_immediate(u8 const *stream, size_t len) {
 		return 0;
 	}
 
-	bool const wide = (stream[0] & 0x1) != 0;
-	u8 step = 3 + wide;
+	bool const sign_extend = (stream[0] & 0x2u) != 0;
+	bool const wide = (stream[0] & 0x1u) != 0;
+	u8 step = 2;
 	if (len < step) {
 		return 0;
 	}
@@ -251,11 +252,9 @@ static size_t op_rm_immediate(u8 const *stream, size_t len) {
 				if (len < step) {
 					return 0;
 				}
-				snprintf(dest_str, INST_ARG_BUF_SIZE, "[%hu]", stream[2] | (stream[3] << 8));
-				immediate = wide ? (stream[4] | (stream[5] << 8)) : SIGN_EXTEND(stream[4]);
+				snprintf(dest_str, INST_ARG_BUF_SIZE, "[%hu]", DATA16(stream[2], stream[3]));
 			} else {
 				snprintf(dest_str, INST_ARG_BUF_SIZE, "[%s]", eac_table[dest]);
-				immediate = wide ? (stream[2] | (stream[3] << 8)) : SIGN_EXTEND(stream[2]);
 			}
 			break;
 		case 1:
@@ -264,29 +263,40 @@ static size_t op_rm_immediate(u8 const *stream, size_t len) {
 				return 0;
 			}
 			snprintf(dest_str, INST_ARG_BUF_SIZE, "[%s + %hu]", eac_table[dest], SIGN_EXTEND(stream[2]));
-			immediate = wide ? (stream[3] | (stream[4] << 8)) : SIGN_EXTEND(stream[3]);
 			break;
 		case 2:
 			step += 2;
 			if (len < step) {
 				return 0;
 			}
-			snprintf(dest_str, INST_ARG_BUF_SIZE, "[%s + %hu]", eac_table[dest], stream[2] | (stream[3] << 8));
-			immediate = wide ? (stream[4] | (stream[5] << 8)) : SIGN_EXTEND(stream[4]);
+			snprintf(dest_str, INST_ARG_BUF_SIZE, "[%s + %hu]", eac_table[dest], DATA16(stream[2], stream[3]));
 			break;
 		case 3:
 			if (wide) {
 				dest |= 0x08;
 			}
-			snprintf(dest_str, INST_ARG_BUF_SIZE, "[%s]", reg_names[dest]);
-			immediate = wide ? (stream[2] | (stream[3] << 8)) : SIGN_EXTEND(stream[2]);
+			snprintf(dest_str, INST_ARG_BUF_SIZE, "%s", reg_names[dest]);
 			break;
+	}
+
+	if (wide && !sign_extend) {
+		step += 2;
+		if (len < step) {
+			return 0;
+		}
+		immediate = DATA16(stream[step - 2], stream[step - 1]);
+	} else {
+		step += 1;
+		if (len < step) {
+			return 0;
+		}
+		immediate = sign_extend ? SIGN_EXTEND(stream[step - 1]) : stream[step - 1];
 	}
 
 	char const *mnemonic_table[8] = {
 		"add", "or", "adc", "sbb", "and", "sub", "xor", "cmp"
 	};
-	printf("%s %s, %s %hu\n", mnemonic_table[op], dest_str, wide?"word":"byte", immediate);
+	printf("%s %s %s, %hu\n", mnemonic_table[op], wide?"word":"byte", dest_str, immediate);
 	return step;
 }
 
