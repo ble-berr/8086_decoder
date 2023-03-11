@@ -338,6 +338,21 @@ static size_t conditional_jump(u8 const *stream, size_t len) {
 	}
 	/* TODO(benjamin): typesafe signed conversion. */
 	printf("%s $%+hhi+0\n", condition_jump_mnemonics[stream[0] & 0xf], (s8)stream[1]);
+}
+
+static char const *const extra_jump_mnemonics[0x4] = {
+	"loopne",
+	"loope",
+	"loop",
+	"jcxz",
+};
+
+static size_t extra_jump(u8 const *stream, size_t len) {
+	if (len < 2) {
+		return 0;
+	}
+	/* TODO(benjamin): standard compliant signed conversion. */
+	printf("%s $%+hhi+0\n", extra_jump_mnemonics[stream[0] & 0x3], (s8)stream[1]);
 	return 2;
 }
 
@@ -518,8 +533,16 @@ static size_t dispatch(u8 const *stream, size_t len) {
 			/* not implemented. */
 			return 0;
 		case 0xe:
-			/* not implemented. */
-			return 0;
+			switch (stream[0] & 0xf) {
+				case 0x0:
+				case 0x1:
+				case 0x2:
+				case 0x3:
+					return extra_jump(stream, len);
+				default:
+					/* not implemented. */
+					return 0;
+			}
 		case 0xf:
 			/* not implemented. */
 			return 0;
