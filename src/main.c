@@ -31,7 +31,7 @@ enum e_reg {
 	REG_DI,
 };
 
-char const *reg_names[16] = {
+char const *register_mnemonics[16] = {
 	"al", "cl", "dl", "bl", "ah", "ch", "dh", "bh",
 	"ax", "cx", "dx", "bx", "sp", "bp", "si", "di",
 };
@@ -85,7 +85,7 @@ static size_t render_rm(rm_buf_t buf, bool wide, u8 mod, u8 rm, u8 const *stream
 			if (wide) {
 				rm |= 0x08;
 			}
-			snprintf(buf, INST_ARG_BUF_SIZE, "%s", reg_names[rm]);
+			snprintf(buf, INST_ARG_BUF_SIZE, "%s", register_mnemonics[rm]);
 			break;
 	}
 	return step;
@@ -105,7 +105,7 @@ static size_t render_r_to_rm(rm_buf_t r_buf, rm_buf_t rm_buf, u8 const *stream, 
 	if (wide) {
 		r |= 0x08;
 	}
-	snprintf(r_buf, INST_ARG_BUF_SIZE, "%s", reg_names[r]);
+	snprintf(r_buf, INST_ARG_BUF_SIZE, "%s", register_mnemonics[r]);
 
 	step += render_rm(rm_buf, wide, mod, rm, stream + step, len - step);
 	if (len < step) {
@@ -168,7 +168,7 @@ static size_t mov_immediate_to_reg(u8 const *stream, size_t len) {
 		immediate = SIGN_EXTEND(stream[1]);
 	}
 
-	printf("mov %s, %hu\n", reg_names[reg], immediate);
+	printf("mov %s, %hu\n", register_mnemonics[reg], immediate);
 	return step;
 }
 
@@ -196,7 +196,7 @@ static size_t mov_imm2narrow(u8 const *stream, size_t len) {
 			printf("mov [%s + %hu], byte %hu\n", eac_table[b], DATA16(stream[2], stream[3]), SIGN_EXTEND(stream[4]));
 			return 5;
 		case 3:
-			printf("mov %s, byte %hu\n", reg_names[b], SIGN_EXTEND(stream[2]));
+			printf("mov %s, byte %hu\n", register_mnemonics[b], SIGN_EXTEND(stream[2]));
 			return 3;
 	}
 
@@ -226,7 +226,7 @@ static size_t mov_imm2wide(u8 const *stream, size_t len) {
 			return 6;
 		case 3:
 			b |= 0x08;
-			printf("mov %s, word %hu\n", reg_names[b], DATA16(stream[2], stream[3]));
+			printf("mov %s, word %hu\n", register_mnemonics[b], DATA16(stream[2], stream[3]));
 			return 4;
 	}
 
@@ -300,17 +300,17 @@ static size_t op_rm_immediate(u8 const *stream, size_t len) {
 	return step;
 }
 
-static char const *const acc_names[2] = { "al", "ax" };
+static char const *const acc_mnemonics[2] = { "al", "ax" };
 
 static size_t mov_mem2acc(bool wide, u8 const *stream, size_t len) {
 	/* TODO(benjamin): assert len. */
-	printf("mov %s, [%hu]\n", acc_names[wide], DATA16(stream[1], stream[2]));
+	printf("mov %s, [%hu]\n", acc_mnemonics[wide], DATA16(stream[1], stream[2]));
 	return 3;
 }
 
 static size_t mov_acc2mem(bool wide, u8 const *stream, size_t len) {
 	/* TODO(benjamin): assert len. */
-	printf("mov [%hu], %s\n", DATA16(stream[1], stream[2]), acc_names[wide]);
+	printf("mov [%hu], %s\n", DATA16(stream[1], stream[2]), acc_mnemonics[wide]);
 	return 3;
 }
 
@@ -362,7 +362,7 @@ static size_t extra_jump(u8 const *stream, size_t len) {
 	return 2;
 }
 
-static char const *const segment_register_names[4] = {
+static char const *const segment_register_mnemonics[4] = {
 	"es",
 	"cs",
 	"ss",
@@ -381,7 +381,7 @@ static size_t segment_op(u8 const *stream, size_t len) {
 		return 0;
 	} else {
 		bool const pop = (stream[0] & 1u) != 0;
-		printf("%s %s\n", pop?"pop":"push", segment_register_names[reg]);
+		printf("%s %s\n", pop?"pop":"push", segment_register_mnemonics[reg]);
 	}
 
 	return 1;
@@ -406,9 +406,9 @@ static size_t mov_seg_to_rm(u8 const *stream, size_t len) {
 	}
 
 	if (reverse) {
-		printf("mov %s, %s\n", segment_register_names[seg], rm_buf);
+		printf("mov %s, %s\n", segment_register_mnemonics[seg], rm_buf);
 	} else {
-		printf("mov %s, %s\n", rm_buf, segment_register_names[seg]);
+		printf("mov %s, %s\n", rm_buf, segment_register_mnemonics[seg]);
 	}
 
 	return 0;
@@ -430,7 +430,7 @@ static size_t lea_rm_to_r(u8 const *stream, size_t len) {
 		return 0;
 	}
 
-	printf("lea %s, %s\n", reg_names[reg], rm_buf);
+	printf("lea %s, %s\n", register_mnemonics[reg], rm_buf);
 	return step;
 }
 
@@ -534,10 +534,10 @@ static size_t dispatch(u8 const *stream, size_t len) {
 					return 0;
 			}
 		case 0x4:
-			printf("%s %s\n", (stream[0] & 8u)?"dec":"inc", reg_names[stream[0] & 7u]);
+			printf("%s %s\n", (stream[0] & 8u)?"dec":"inc", register_mnemonics[stream[0] & 7u]);
 			return 1;
 		case 0x5:
-			printf("%s %s\n", (stream[0] & 8u)?"pop":"push", reg_names[stream[0] & 7u]);
+			printf("%s %s\n", (stream[0] & 8u)?"pop":"push", register_mnemonics[stream[0] & 7u]);
 			return 1;
 		case 0x6:
 			/* unused. */
@@ -587,7 +587,7 @@ static size_t dispatch(u8 const *stream, size_t len) {
 				case 0x5:
 				case 0x6:
 				case 0x7:
-					printf("xchg ax, %s\n", reg_names[stream[0] | 8u]);
+					printf("xchg ax, %s\n", register_mnemonics[stream[0] | 8u]);
 					return 1;
 				case 0x8:
 					printf("cbw\n");
