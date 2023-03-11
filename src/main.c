@@ -576,8 +576,32 @@ static size_t dispatch(u8 const *stream, size_t len) {
 				case 0x7:
 					printf("xchg ax, %s\n", reg_names[stream[0] | 8u]);
 					return 1;
+				case 0x8:
+					printf("cbw\n");
+					return 1;
+				case 0x9:
+					printf("cwd\n");
+					return 1;
+				case 0xa:
+					/* TODO(benjamin): not implemented: call */
+					return 0;
+				case 0xb:
+					printf("wait\n");
+					return 1;
+				case 0xc:
+					printf("pushf\n");
+					return 1;
+				case 0xd:
+					printf("popf\n");
+					return 1;
+				case 0xe:
+					printf("sahf\n");
+					return 1;
+				case 0xf:
+					printf("lahf\n");
+					return 1;
 				default:
-					/* not implemented. */
+					/* unreachable. */
 					return 0;
 			}
 		case 0xa:
