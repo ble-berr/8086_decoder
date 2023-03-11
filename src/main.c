@@ -48,12 +48,50 @@ static char const *eac_table[8] = {
 };
 
 #define INST_ARG_BUF_SIZE 24
-struct r_to_rm_pair {
-	char r[INST_ARG_BUF_SIZE];
-	char rm[INST_ARG_BUF_SIZE];
-};
+typedef char rm_buf_t[INST_ARG_BUF_SIZE];
 
-static size_t render_r_to_rm(struct r_to_rm_pair *pair, u8 const *stream, size_t len) {
+static size_t render_rm(rm_buf_t buf, bool wide, u8 mod, u8 rm, u8 const *stream, size_t len) {
+	u8 step = 0;
+	switch (mod) {
+		case 0:
+			if (rm == 6) {
+				step += 2;
+				if (len < step) {
+					return step;
+				}
+				/* direct address */
+				snprintf(buf, INST_ARG_BUF_SIZE, "[%hu]", DATA16(stream[0], stream[1]));
+			} else {
+				snprintf(buf, INST_ARG_BUF_SIZE, "[%s]", eac_table[rm]);
+			}
+			break;
+		case 1:
+			step += 1;
+			if (len < step) {
+				return step;
+			}
+			/* TODO(benjamin): standard compliant signed conversion. */
+			snprintf(buf, INST_ARG_BUF_SIZE, "[%s + %hi]", eac_table[rm], (s16)SIGN_EXTEND(stream[0]));
+			break;
+		case 2:
+			step += 2;
+			if (len < step) {
+				return step;
+			}
+			/* TODO(benjamin): standard compliant signed conversion. */
+			snprintf(buf, INST_ARG_BUF_SIZE, "[%s + %hi]", eac_table[rm], (s16)DATA16(stream[0], stream[1]));
+			break;
+		case 3:
+			if (wide) {
+				rm |= 0x08;
+			}
+			snprintf(buf, INST_ARG_BUF_SIZE, "%s", reg_names[rm]);
+			break;
+	}
+	return step;
+}
+
+static size_t render_r_to_rm(rm_buf_t r_buf, rm_buf_t rm_buf, u8 const *stream, size_t len) {
 	u8 step = 2;
 	if (len < step) {
 		return 0;
@@ -67,51 +105,20 @@ static size_t render_r_to_rm(struct r_to_rm_pair *pair, u8 const *stream, size_t
 	if (wide) {
 		r |= 0x08;
 	}
-	snprintf(pair->r, INST_ARG_BUF_SIZE, "%s", reg_names[r]);
+	snprintf(r_buf, INST_ARG_BUF_SIZE, "%s", reg_names[r]);
 
-	switch (mod) {
-		case 0:
-			if (rm == 6) {
-				step += 2;
-				if (len < step) {
-					return 0;
-				}
-				/* direct address */
-				snprintf(pair->rm, INST_ARG_BUF_SIZE, "[%hu]", DATA16(stream[2], stream[3]));
-			} else {
-				snprintf(pair->rm, INST_ARG_BUF_SIZE, "[%s]", eac_table[rm]);
-			}
-			break;
-		case 1:
-			step += 1;
-			if (len < step) {
-				return 0;
-			}
-			/* TODO(benjamin): standard compliant signed conversion. */
-			snprintf(pair->rm, INST_ARG_BUF_SIZE, "[%s + %hi]", eac_table[rm], (s16)SIGN_EXTEND(stream[2]));
-			break;
-		case 2:
-			step += 2;
-			if (len < step) {
-				return 0;
-			}
-			/* TODO(benjamin): standard compliant signed conversion. */
-			snprintf(pair->rm, INST_ARG_BUF_SIZE, "[%s + %hi]", eac_table[rm], (s16)DATA16(stream[2], stream[3]));
-			break;
-		case 3:
-			if (wide) {
-				rm |= 0x08;
-			}
-			snprintf(pair->rm, INST_ARG_BUF_SIZE, "%s", reg_names[rm]);
-			break;
+	step += render_rm(rm_buf, wide, mod, rm, stream + step, len - step);
+	if (len < step) {
+		return 0;
 	}
 
 	return step;
 }
 
 static size_t decode_r_to_rm(u8 const *stream, size_t len, char const *inst) {
-	struct r_to_rm_pair pair;
-	u8 step = render_r_to_rm(&pair, stream, len);
+	rm_buf_t r_buf;
+	rm_buf_t rm_buf;
+	u8 step = render_r_to_rm(r_buf, rm_buf, stream, len);
 
 	if (step == 0) {
 		return 0;
@@ -120,23 +127,24 @@ static size_t decode_r_to_rm(u8 const *stream, size_t len, char const *inst) {
 	bool const reverse = (stream[0] & 0x2) != 0;
 
 	if (reverse) {
-		printf("%s %s, %s\n", inst, pair.r, pair.rm);
+		printf("%s %s, %s\n", inst, r_buf, rm_buf);
 	} else {
-		printf("%s %s, %s\n", inst, pair.rm, pair.r);
+		printf("%s %s, %s\n", inst, rm_buf, r_buf);
 	}
 
 	return step;
 }
 
 static size_t decode_r_vs_rm(u8 const *stream, size_t len, char const *inst) {
-	struct r_to_rm_pair pair;
-	u8 step = render_r_to_rm(&pair, stream, len);
+	rm_buf_t r_buf;
+	rm_buf_t rm_buf;
+	u8 step = render_r_to_rm(r_buf, rm_buf, stream, len);
 
 	if (step == 0) {
 		return 0;
 	}
 
-	printf("%s %s, %s\n", inst, pair.r, pair.rm);
+	printf("%s %s, %s\n", inst, r_buf, rm_buf);
 	return step;
 }
 
