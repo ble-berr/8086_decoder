@@ -588,7 +588,7 @@ int main(void) {
 	for (size_t i = 0; i < program_len;) {
 		size_t const step = dispatch(program + i, program_len - i);
 		if (!step) {
-			printf("unrecognized instruction at 0x%zx: 0x%02hhx\n", i, program[i]);
+			printf("unrecognized instruction: program[0x%zx]: 0x%02hhx\n", i, program[i]);
 			return 0;
 		}
 		i += step;
