@@ -8,7 +8,7 @@ typedef unsigned char bool;
 
 typedef size_t (*inst_proc)(u8 const*, size_t);
 
-#define EXTEND_8TO16(n) ((n & 0xf0) ? (n | (u16)0xff00) : (u16)n)
+#define SIGN_EXTEND(n) ((n & 0xf0) ? (n | (u16)0xff00) : (u16)n)
 
 enum e_reg {
 	REG_AL,
@@ -85,7 +85,7 @@ static size_t render_r_to_rm(struct r_to_rm_pair *pair, u8 const *stream, size_t
 			if (len < step) {
 				return 0;
 			}
-			snprintf(pair->rm, INST_ARG_BUF_SIZE, "[%s + %hu]", eac_table[rm], EXTEND_8TO16(stream[2]));
+			snprintf(pair->rm, INST_ARG_BUF_SIZE, "[%s + %hu]", eac_table[rm], SIGN_EXTEND(stream[2]));
 			break;
 		case 2:
 			step += 2;
@@ -153,21 +153,21 @@ static size_t mov_imm2narrow(u8 const *stream, size_t len) {
 			{
 				if (b == 6) {
 					/* direct address */
-					printf("mov [%hu], byte %hu\n", stream[2] | ((u16)stream[3] << 8), EXTEND_8TO16(stream[4]));
+					printf("mov [%hu], byte %hu\n", stream[2] | ((u16)stream[3] << 8), SIGN_EXTEND(stream[4]));
 					return 5;
 				} else {
-					printf("mov [%s], byte %hu\n", eac_table[b], EXTEND_8TO16(stream[2]));
+					printf("mov [%s], byte %hu\n", eac_table[b], SIGN_EXTEND(stream[2]));
 					return 3;
 				}
 			}
 		case 1:
-			printf("mov [%s + %hu], byte %hu\n", eac_table[b], EXTEND_8TO16(stream[2]), EXTEND_8TO16(stream[3]));
+			printf("mov [%s + %hu], byte %hu\n", eac_table[b], SIGN_EXTEND(stream[2]), SIGN_EXTEND(stream[3]));
 			return 4;
 		case 2:
-			printf("mov [%s + %hu], byte %hu\n", eac_table[b], stream[2] | ((u16)stream[3] << 8), EXTEND_8TO16(stream[4]));
+			printf("mov [%s + %hu], byte %hu\n", eac_table[b], stream[2] | ((u16)stream[3] << 8), SIGN_EXTEND(stream[4]));
 			return 5;
 		case 3:
-			printf("mov %s, byte %hu\n", reg_names[b], EXTEND_8TO16(stream[2]));
+			printf("mov %s, byte %hu\n", reg_names[b], SIGN_EXTEND(stream[2]));
 			return 3;
 	}
 
@@ -192,7 +192,7 @@ static size_t mov_imm2wide(u8 const *stream, size_t len) {
 				}
 			}
 		case 1:
-			printf("mov [%s + %hu], word %hu\n", eac_table[b], EXTEND_8TO16(stream[2]), stream[3] | ((u16)stream[4] << 8));
+			printf("mov [%s + %hu], word %hu\n", eac_table[b], SIGN_EXTEND(stream[2]), stream[3] | ((u16)stream[4] << 8));
 			return 5;
 		case 2:
 			printf("mov [%s + %hu], word %hu\n", eac_table[b], stream[2] | ((u16)stream[3] << 8), stream[4] | ((u16)stream[5] << 8));
