@@ -154,7 +154,7 @@ static size_t mov_immediate_to_reg(u8 const *stream, size_t len) {
 		return 0;
 	}
 	bool const wide = !!(stream[0] & 0x08);
-	bool reg = stream[0] & 0x07;
+	u8 reg = stream[0] & 0x07;
 	u16 immediate;
 
 	if (wide) {
