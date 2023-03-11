@@ -528,7 +528,6 @@ static size_t dispatch(u8 const *stream, size_t len) {
 					/* not implemented. */
 					return 0;
 			}
-			return 0;
 		case 0xb:
 			return mov_immediate_to_reg(stream, len);
 		case 0xc:
