@@ -12,25 +12,6 @@ typedef size_t (*inst_proc)(u8 const*, size_t);
 #define SIGN_EXTEND(n) ((n & (u8)0x80) ? (n | (u16)0xff00) : (u16)n)
 #define DATA16(data_lo, data_hi) (data_lo | (data_hi << (u16)8))
 
-enum e_reg {
-	REG_AL,
-	REG_CL,
-	REG_DL,
-	REG_BL,
-	REG_AH,
-	REG_CH,
-	REG_DH,
-	REG_BH,
-	REG_AX,
-	REG_CX,
-	REG_DX,
-	REG_BX,
-	REG_SP,
-	REG_BP,
-	REG_SI,
-	REG_DI,
-};
-
 char const *register_mnemonics[16] = {
 	"al", "cl", "dl", "bl", "ah", "ch", "dh", "bh",
 	"ax", "cx", "dx", "bx", "sp", "bp", "si", "di",
