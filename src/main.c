@@ -517,13 +517,6 @@ int main(void) {
 			printf("unrecognized instruction: program[0x%zx]: 0x%02hhx\n", i, program[i]);
 			return 0;
 		}
-		/*
-		dprintf(2, "opcode:");
-		for (size_t j = 0; j < step; ++j) {
-			dprintf(2, " 0x%02hhx", program[i + j]);
-		}
-		dprintf(2, "\n");
-		*/
 		i += step;
 	}
 

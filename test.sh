@@ -11,7 +11,7 @@ for listing in listings/*.asm ; do
 	test_output="${output}_test"
 
 	nasm -o "$ref_output" "$listing"
-	./decoder < "$ref_output" | tee "${test_output}.asm" >/dev/null
+	./decoder < "$ref_output"
 	nasm -o "$test_output" "${test_output}.asm"
 
 	if cmp "$ref_output" "$test_output" ; then
