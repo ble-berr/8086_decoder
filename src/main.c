@@ -225,7 +225,7 @@ static size_t mov_imm2wide(u8 const *stream, size_t len) {
 			printf("mov [%s + %hu], word %hu\n", eac_table[b], DATA16(stream[2], stream[3]), DATA16(stream[4], stream[5]));
 			return 6;
 		case 3:
-			b |= 0x8;
+			b |= 0x08;
 			printf("mov %s, word %hu\n", reg_names[b], DATA16(stream[2], stream[3]));
 			return 4;
 	}
