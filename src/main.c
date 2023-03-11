@@ -355,7 +355,9 @@ static size_t conditional_jump(u8 const *stream, size_t len) {
 		return 0;
 	}
 	/* TODO(benjamin): standard compliant signed conversion. */
-	printf("%s $%+hhi+0\n", conditional_jump_mnemonics[stream[0] & 0xf], (s8)stream[1]);
+	/* TODO(benjamin): test and handle overflow */
+	s8 const ip_inc_8 = stream[1] + (u8)2;
+	printf("%s $%+hhi\n", conditional_jump_mnemonics[stream[0] & 0xf], ip_inc_8);
 	return 2;
 }
 
@@ -371,7 +373,9 @@ static size_t extra_jump(u8 const *stream, size_t len) {
 		return 0;
 	}
 	/* TODO(benjamin): standard compliant signed conversion. */
-	printf("%s $%+hhi+0\n", extra_jump_mnemonics[stream[0] & 0x3], (s8)stream[1]);
+	/* TODO(benjamin): test and handle overflow */
+	s8 const ip_inc_8 = stream[1] + (u8)2;
+	printf("%s $%+hhi\n", extra_jump_mnemonics[stream[0] & 0x3], ip_inc_8);
 	return 2;
 }
 
