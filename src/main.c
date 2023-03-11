@@ -382,6 +382,29 @@ static size_t extra_jump(u8 const *stream, size_t len) {
 	return 2;
 }
 
+static char const *const segment_register_names[4] = {
+	"es",
+	"cs",
+	"ss",
+	"ds",
+};
+
+static size_t segment_op(u8 const *stream, size_t len) {
+	if (len < 1) {
+		return 0;
+	}
+
+	u8 const reg = (stream[0] & 030u) >> 3u;
+
+	if (stream[0] & 0x10u) {
+		/* TODO(benjamin): segment override prefixes */
+		return 0;
+	} else {
+		bool const pop = (stream[0] & 1u) != 0;
+		printf("%s %s\n", pop?"pop":"push", segment_register_names[reg]);
+	}
+}
+
 static size_t dispatch(u8 const *stream, size_t len) {
 	if (len == 0) {
 		return 0;
@@ -403,8 +426,7 @@ static size_t dispatch(u8 const *stream, size_t len) {
 					return op_acc_immediate(stream, len, arithmetic_mnemonics[(stream[0] & 070u) >> 3]);
 				case 6:
 				case 7:
-					/* not implemented. */
-					return 0;
+					return segment_op(stream, len)
 				default:
 					/* unreachable */
 					return 0;
