@@ -210,6 +210,85 @@ static size_t mov_imm2wide(u8 const *stream, size_t len) {
 	return 2;
 }
 
+static size_t op_acc_immediate(u8 const *stream, size_t len, char const *mnemonic) {
+	bool const wide = (stream[0] & 0x1u) != 0;
+	if (len < (2 + wide)) {
+		return 0;
+	}
+
+	if (wide) {
+		printf("%s ax, word %hu\n", mnemonic, DATA16(stream[1], stream[2]));
+		return 3;
+	} else {
+		printf("%s ax, word %hu\n", mnemonic, SIGN_EXTEND(stream[1]));
+		return 2;
+	}
+}
+
+static size_t op_rm_immediate(u8 const *stream, size_t len) {
+	if (len == 0) {
+		return 0;
+	}
+
+	bool const wide = (stream[0] & 0x1) != 0;
+	u8 step = 3 + wide;
+	if (len < step) {
+		return 0;
+	}
+
+	u8 const mod = stream[1] >> 6;
+	u8 const op = stream[1] >> 3 & 0x7;
+	u8 dest = stream[1] & 0x7;
+
+	char dest_str[INST_ARG_BUF_SIZE] = {};
+	u16 immediate;
+	switch (mod) {
+		case 0:
+			if (dest == 6) {
+				/* direct address */
+				step += 2;
+				if (len < step) {
+					return 0;
+				}
+				snprintf(dest_str, INST_ARG_BUF_SIZE, "[%hu]", stream[2] | (stream[3] << 8));
+				immediate = wide ? (stream[4] | (stream[5] << 8)) : SIGN_EXTEND(stream[4]);
+			} else {
+				snprintf(dest_str, INST_ARG_BUF_SIZE, "[%s]", eac_table[dest]);
+				immediate = wide ? (stream[2] | (stream[3] << 8)) : SIGN_EXTEND(stream[2]);
+			}
+			break;
+		case 1:
+			step += 1;
+			if (len < step) {
+				return 0;
+			}
+			snprintf(dest_str, INST_ARG_BUF_SIZE, "[%s + %hu]", eac_table[dest], SIGN_EXTEND(stream[2]));
+			immediate = wide ? (stream[3] | (stream[4] << 8)) : SIGN_EXTEND(stream[3]);
+			break;
+		case 2:
+			step += 2;
+			if (len < step) {
+				return 0;
+			}
+			snprintf(dest_str, INST_ARG_BUF_SIZE, "[%s + %hu]", eac_table[dest], stream[2] | (stream[3] << 8));
+			immediate = wide ? (stream[4] | (stream[5] << 8)) : SIGN_EXTEND(stream[4]);
+			break;
+		case 3:
+			if (wide) {
+				dest |= 0x08;
+			}
+			snprintf(dest_str, INST_ARG_BUF_SIZE, "[%s]", reg_names[dest]);
+			immediate = wide ? (stream[2] | (stream[3] << 8)) : SIGN_EXTEND(stream[2]);
+			break;
+	}
+
+	char const *mnemonic_table[8] = {
+		"add", "or", "adc", "sbb", "and", "sub", "xor", "cmp"
+	};
+	printf("%s %s, %s %hu\n", mnemonic_table[op], dest_str, wide?"word":"byte", immediate);
+	return step;
+}
+
 static size_t mov_mem2al(u8 const *stream, size_t len) {
 	/* TODO(benjamin): assert len. */
 	printf("mov al, [%hu]\n", DATA16(stream[1], stream[2]));
@@ -275,32 +354,106 @@ static size_t dispatch(u8 const *stream, size_t len) {
 				case 0x2:
 				case 0x3:
 					return decode_r_to_rm(stream, len, "add");
-				default:
+				case 0x4:
+				case 0x5:
+					return op_acc_immediate(stream, len, "add");
+				case 0x6:
+				case 0x7:
 					/* not implemented. */
+					return 0;
+				case 0x8:
+				case 0x9:
+				case 0xa:
+				case 0xb:
+					return decode_r_to_rm(stream, len, "or");
+				case 0xc:
+				case 0xd:
+					return op_acc_immediate(stream, len, "or");
+				case 0xe:
+					/* not implemented. */
+					return 0;
+				case 0xf:
+					/* unused. */
 					return 0;
 			}
 		case 0x1:
-			/* not implemented. */
-			return 0;
+			switch (stream[0] & 0xf) {
+				case 0x0:
+				case 0x1:
+				case 0x2:
+				case 0x3:
+					return decode_r_to_rm(stream, len, "adc");
+				case 0x4:
+				case 0x5:
+					return op_acc_immediate(stream, len, "adc");
+				case 0x6:
+				case 0x7:
+					/* not implemented. */
+					return 0;
+				case 0x8:
+				case 0x9:
+				case 0xa:
+				case 0xb:
+					return decode_r_to_rm(stream, len, "sbb");
+				case 0xc:
+				case 0xd:
+					return op_acc_immediate(stream, len, "sbb");
+				case 0xe:
+				case 0xf:
+					/* not implemented. */
+					return 0;
+			}
 		case 0x2:
 			switch (stream[0] & 0xf) {
+				case 0x0:
+				case 0x1:
+				case 0x2:
+				case 0x3:
+					return decode_r_to_rm(stream, len, "and");
+				case 0x4:
+				case 0x5:
+					return op_acc_immediate(stream, len, "and");
+				case 0x6:
+				case 0x7:
+					/* not implemented. */
+					return 0;
 				case 0x8:
 				case 0x9:
 				case 0xa:
 				case 0xb:
 					return decode_r_to_rm(stream, len, "sub");
-				default:
+				case 0xc:
+				case 0xd:
+					return op_acc_immediate(stream, len, "sub");
+				case 0xe:
+				case 0xf:
 					/* not implemented. */
 					return 0;
 			}
 		case 0x3:
 			switch (stream[0] & 0xf) {
+				case 0x0:
+				case 0x1:
+				case 0x2:
+				case 0x3:
+					return decode_r_to_rm(stream, len, "xor");
+				case 0x4:
+				case 0x5:
+					return op_acc_immediate(stream, len, "xor");
+				case 0x6:
+				case 0x7:
+					/* not implemented. */
+					return 0;
 				case 0x8:
 				case 0x9:
 				case 0xa:
 				case 0xb:
 					return decode_r_to_rm(stream, len, "cmp");
-				default:
+				case 0xc:
+				case 0xd:
+					return op_acc_immediate(stream, len, "cmp");
+				case 0xe:
+				case 0xf:
 					/* not implemented. */
 					return 0;
 			}
@@ -311,12 +464,17 @@ static size_t dispatch(u8 const *stream, size_t len) {
 			/* not implemented. */
 			return 0;
 		case 0x6:
-			/* not implemented. */
+			/* unused. */
 			return 0;
 		case 0x7:
 			return conditional_jump(stream, len);
 		case 0x8:
 			switch (stream[0] & 0xf) {
+				case 0x0:
+				case 0x1:
+				case 0x2:
+				case 0x3:
+					return op_rm_immediate(stream, len);
 				case 0x8:
 				case 0x9:
 				case 0xa:
