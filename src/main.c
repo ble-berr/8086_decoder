@@ -732,6 +732,42 @@ static size_t dispatch(u8 const *stream, size_t len) {
 				case 0x2:
 				case 0x3:
 					return extra_jump(stream, len);
+				case 0x4:
+					/* TODO(benjamin): not implemented: in al, immed8 */
+					return 0;
+				case 0x5:
+					/* TODO(benjamin): not implemented: in ax, immed8 */
+					return 0;
+				case 0x6:
+					/* TODO(benjamin): not implemented: out al, immed8 */
+					return 0;
+				case 0x7:
+					/* TODO(benjamin): not implemented: out ax, immed8 */
+					return 0;
+				case 0x8:
+					/* TODO(benjamin): not implemented: call near-proc */
+					return 0;
+				case 0x9:
+					/* TODO(benjamin): not implemented: jmp near-label */
+					return 0;
+				case 0xa:
+					/* TODO(benjamin): not implemented: jmp far-label */
+					return 0;
+				case 0xb:
+					/* TODO(benjamin): not implemented: jmp short-label */
+					return 0;
+				case 0xc:
+					/* TODO(benjamin): not implemented: in al, dx */
+					return 0;
+				case 0xd:
+					/* TODO(benjamin): not implemented: in ax, dx */
+					return 0;
+				case 0xe:
+					/* TODO(benjamin): not implemented: out al, dx */
+					return 0;
+				case 0xf:
+					/* TODO(benjamin): not implemented: out ax, dx */
+					return 0;
 				default:
 					/* not implemented. */
 					return 0;
