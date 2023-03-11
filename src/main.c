@@ -434,7 +434,8 @@ static size_t mov_seg_to_rm(u8 const *stream, size_t len) {
 	}
 
 	u8 const reverse = (stream[0] & 2u) != 0;
-	u8 const mod = stream[1] >> 6;
+	u8 const mod = stream[1] >> 6u;
+	/* TODO(benjamin): assert 040? */
 	u8 const seg = (stream[1] & 030u) >> 3;
 	u8 const rm = stream[1] & 07u;
 
