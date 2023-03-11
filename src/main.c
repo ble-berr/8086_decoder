@@ -229,6 +229,10 @@ static size_t op_acc_immediate(u8 const *stream, size_t len, char const *mnemoni
 	return step;
 }
 
+char const *arithmetic_mnemonics[8] = {
+	"add", "or", "adc", "sbb", "and", "sub", "xor", "cmp"
+};
+
 static size_t op_rm_immediate(u8 const *stream, size_t len) {
 	if (len == 0) {
 		return 0;
@@ -302,10 +306,7 @@ static size_t op_rm_immediate(u8 const *stream, size_t len) {
 		immediate = stream[step - 1];
 	}
 
-	char const *mnemonic_table[8] = {
-		"add", "or", "adc", "sbb", "and", "sub", "xor", "cmp"
-	};
-	printf("%s %s %s, %hu\n", mnemonic_table[op], wide?"word":"byte", dest_str, immediate);
+	printf("%s %s %s, %hu\n", arithmetic_mnemonics[op], wide?"word":"byte", dest_str, immediate);
 	return step;
 }
 
@@ -388,121 +389,24 @@ static size_t dispatch(u8 const *stream, size_t len) {
 
 	switch (stream[0] >> 4) {
 		case 0x0:
-			switch (stream[0] & 0xf) {
-				case 0x0:
-				case 0x1:
-				case 0x2:
-				case 0x3:
-					return decode_r_to_rm(stream, len, "add");
-				case 0x4:
-				case 0x5:
-					return op_acc_immediate(stream, len, "add");
-				case 0x6:
-				case 0x7:
-					/* not implemented. */
-					return 0;
-				case 0x8:
-				case 0x9:
-				case 0xa:
-				case 0xb:
-					return decode_r_to_rm(stream, len, "or");
-				case 0xc:
-				case 0xd:
-					return op_acc_immediate(stream, len, "or");
-				case 0xe:
-					/* not implemented. */
-					return 0;
-				case 0xf:
-					/* unused. */
-					return 0;
-				default: /* unreachable */
-					return 0;
-			}
 		case 0x1:
-			switch (stream[0] & 0xf) {
-				case 0x0:
-				case 0x1:
-				case 0x2:
-				case 0x3:
-					return decode_r_to_rm(stream, len, "adc");
-				case 0x4:
-				case 0x5:
-					return op_acc_immediate(stream, len, "adc");
-				case 0x6:
-				case 0x7:
-					/* not implemented. */
-					return 0;
-				case 0x8:
-				case 0x9:
-				case 0xa:
-				case 0xb:
-					return decode_r_to_rm(stream, len, "sbb");
-				case 0xc:
-				case 0xd:
-					return op_acc_immediate(stream, len, "sbb");
-				case 0xe:
-				case 0xf:
-					/* not implemented. */
-					return 0;
-				default: /* unreachable */
-					return 0;
-			}
 		case 0x2:
-			switch (stream[0] & 0xf) {
-				case 0x0:
-				case 0x1:
-				case 0x2:
-				case 0x3:
-					return decode_r_to_rm(stream, len, "and");
-				case 0x4:
-				case 0x5:
-					return op_acc_immediate(stream, len, "and");
-				case 0x6:
-				case 0x7:
-					/* not implemented. */
-					return 0;
-				case 0x8:
-				case 0x9:
-				case 0xa:
-				case 0xb:
-					return decode_r_to_rm(stream, len, "sub");
-				case 0xc:
-				case 0xd:
-					return op_acc_immediate(stream, len, "sub");
-				case 0xe:
-				case 0xf:
-					/* not implemented. */
-					return 0;
-				default: /* unreachable */
-					return 0;
-			}
 		case 0x3:
-			switch (stream[0] & 0xf) {
-				case 0x0:
-				case 0x1:
-				case 0x2:
-				case 0x3:
-					return decode_r_to_rm(stream, len, "xor");
-				case 0x4:
-				case 0x5:
-					return op_acc_immediate(stream, len, "xor");
-				case 0x6:
-				case 0x7:
+			switch (stream[0] & 7u) {
+				case 0:
+				case 1:
+				case 2:
+				case 3:
+					return decode_r_to_rm(stream, len, arithmetic_mnemonics[(stream[0] & 070u) >> 3]);
+				case 4:
+				case 5:
+					return op_acc_immediate(stream, len, arithmetic_mnemonics[(stream[0] & 070u) >> 3]);
+				case 6:
+				case 7:
 					/* not implemented. */
 					return 0;
-				case 0x8:
-				case 0x9:
-				case 0xa:
-				case 0xb:
-					return decode_r_to_rm(stream, len, "cmp");
-				case 0xc:
-				case 0xd:
-					return op_acc_immediate(stream, len, "cmp");
-				case 0xe:
-				case 0xf:
-					/* not implemented. */
-					return 0;
-				default: /* unreachable */
+				default:
+					/* unreachable */
 					return 0;
 			}
 		case 0x4:
@@ -613,6 +517,13 @@ int main(void) {
 			printf("unrecognized instruction: program[0x%zx]: 0x%02hhx\n", i, program[i]);
 			return 0;
 		}
+		/*
+		dprintf(2, "opcode:");
+		for (size_t j = 0; j < step; ++j) {
+			dprintf(2, " 0x%02hhx", program[i + j]);
+		}
+		dprintf(2, "\n");
+		*/
 		i += step;
 	}
 
