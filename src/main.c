@@ -212,17 +212,18 @@ static size_t mov_imm2wide(u8 const *stream, size_t len) {
 
 static size_t op_acc_immediate(u8 const *stream, size_t len, char const *mnemonic) {
 	bool const wide = (stream[0] & 0x1u) != 0;
-	if (len < (2 + wide)) {
+	u8 const step = 2 + wide;
+	if (len < step) {
 		return 0;
 	}
 
 	if (wide) {
 		printf("%s ax, word %hu\n", mnemonic, DATA16(stream[1], stream[2]));
-		return 3;
 	} else {
-		printf("%s ax, word %hu\n", mnemonic, SIGN_EXTEND(stream[1]));
-		return 2;
+		/* TODO(benjamin): standard compliant signed conversion. */
+		printf("%s al, byte %hhi\n", mnemonic, (s8)stream[1]);
 	}
+	return step;
 }
 
 static size_t op_rm_immediate(u8 const *stream, size_t len) {
