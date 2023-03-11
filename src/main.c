@@ -432,11 +432,11 @@ static size_t dispatch(u8 const *stream, size_t len) {
 					return 0;
 			}
 		case 0x4:
-			/* not implemented. */
-			return 0;
+			printf("%s %s\n", (stream[0] & 8u)?"dec":"inc", register_names[stream[0] & 7u]);
+			return 1;
 		case 0x5:
-			/* not implemented. */
-			return 0;
+			printf("%s %s\n", (stream[0] & 8u)?"pop":"push", register_names[stream[0] & 7u]);
+			return 1;
 		case 0x6:
 			/* unused. */
 			return 0;
