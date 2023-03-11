@@ -643,10 +643,50 @@ static size_t dispatch(u8 const *stream, size_t len) {
 			return mov_immediate_to_reg(stream, len);
 		case 0xc:
 			switch (stream[0] & 0xf) {
+				case 0x0:
+				case 0x1:
+					/* unused */
+					return 0;
+				case 0x2:
+					/* TODO(benjamin): not implemented: ret immed16 */
+					return 0;
+				case 0x3:
+					/* TODO(benjamin): not implemented: ret */
+					return 0;
+				case 0x4:
+					/* TODO(benjamin): not implemented: les */
+					return 0;
+				case 0x5:
+					/* TODO(benjamin): not implemented: lds */
+					return 0;
 				case 0x6:
 					return mov_imm2narrow(stream, len);
 				case 0x7:
 					return mov_imm2wide(stream, len);
+				case 0x8:
+				case 0x9:
+					/* unused */
+					return 0;
+				case 0xa:
+					/* TODO(benjamin): not implemented: ret immed16 */
+					/* NOTE(benjamin): again?? */
+					return 0;
+				case 0xb:
+					/* TODO(benjamin): not implemented: ret */
+					/* NOTE(benjamin): again?? */
+					return 0;
+				case 0xc:
+					/* TODO(benjamin): not implemented: int 3 */
+					return 0;
+				case 0xd:
+					/* TODO(benjamin): not implemented: int immed8 */
+					return 0;
+				case 0xe:
+					printf("into\n");
+					return 1;
+				case 0xf:
+					printf("iret\n");
+					return 1;
 				default:
 					/* not implemented. */
 					return 0;
