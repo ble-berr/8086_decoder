@@ -692,8 +692,39 @@ static size_t dispatch(u8 const *stream, size_t len) {
 					return 0;
 			}
 		case 0xd:
-			/* not implemented. */
-			return 0;
+			switch (stream[0] & 0xfu) {
+				case 0x0:
+				case 0x1:
+				case 0x2:
+				case 0x3:
+					/* TODO(benjamin): not implemented. */
+					return 0;
+				case 0x4:
+					printf("aam\n");
+					return 1;
+				case 0x5:
+					printf("aad\n");
+					return 1;
+				case 0x6:
+					/* unused */
+					return 0;
+				case 0x7:
+					/* TODO(benjamin): not implemented: xlat */
+					return 0;
+				case 0x8:
+				case 0x9:
+				case 0xa:
+				case 0xb:
+				case 0xc:
+				case 0xd:
+				case 0xe:
+				case 0xf:
+					/* TODO(benjamin): not implemented: esc */
+					return 0;
+				default:
+					/* unreachable */
+					return 0;
+			}
 		case 0xe:
 			switch (stream[0] & 0xf) {
 				case 0x0:
