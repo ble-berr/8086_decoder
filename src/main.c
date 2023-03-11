@@ -9,6 +9,7 @@ typedef unsigned char bool;
 typedef size_t (*inst_proc)(u8 const*, size_t);
 
 #define SIGN_EXTEND(n) ((n & 0xf0) ? (n | (u16)0xff00) : (u16)n)
+#define DATA16(data_lo, data_hi) (data_lo | ((u16)data_hi << 8))
 
 enum e_reg {
 	REG_AL,
@@ -75,7 +76,7 @@ static size_t render_r_to_rm(struct r_to_rm_pair *pair, u8 const *stream, size_t
 					return 0;
 				}
 				/* direct address */
-				snprintf(pair->rm, INST_ARG_BUF_SIZE, "[%hu]", stream[2] | ((u16)stream[3] << 8));
+				snprintf(pair->rm, INST_ARG_BUF_SIZE, "[%hu]", DATA16(stream[2], stream[3]));
 			} else {
 				snprintf(pair->rm, INST_ARG_BUF_SIZE, "[%s]", eac_table[rm]);
 			}
@@ -92,7 +93,7 @@ static size_t render_r_to_rm(struct r_to_rm_pair *pair, u8 const *stream, size_t
 			if (len < step) {
 				return 0;
 			}
-			snprintf(pair->rm, INST_ARG_BUF_SIZE, "[%s + %hu]", eac_table[rm], stream[2] | ((u16)stream[3] << 8));
+			snprintf(pair->rm, INST_ARG_BUF_SIZE, "[%s + %hu]", eac_table[rm], DATA16(stream[2], stream[3]));
 			break;
 		case 3:
 			if (wide) {
@@ -153,7 +154,7 @@ static size_t mov_imm2narrow(u8 const *stream, size_t len) {
 			{
 				if (b == 6) {
 					/* direct address */
-					printf("mov [%hu], byte %hu\n", stream[2] | ((u16)stream[3] << 8), SIGN_EXTEND(stream[4]));
+					printf("mov [%hu], byte %hu\n", DATA16(stream[2], stream[3]), SIGN_EXTEND(stream[4]));
 					return 5;
 				} else {
 					printf("mov [%s], byte %hu\n", eac_table[b], SIGN_EXTEND(stream[2]));
@@ -164,7 +165,7 @@ static size_t mov_imm2narrow(u8 const *stream, size_t len) {
 			printf("mov [%s + %hu], byte %hu\n", eac_table[b], SIGN_EXTEND(stream[2]), SIGN_EXTEND(stream[3]));
 			return 4;
 		case 2:
-			printf("mov [%s + %hu], byte %hu\n", eac_table[b], stream[2] | ((u16)stream[3] << 8), SIGN_EXTEND(stream[4]));
+			printf("mov [%s + %hu], byte %hu\n", eac_table[b], DATA16(stream[2], stream[3]), SIGN_EXTEND(stream[4]));
 			return 5;
 		case 3:
 			printf("mov %s, byte %hu\n", reg_names[b], SIGN_EXTEND(stream[2]));
@@ -184,22 +185,22 @@ static size_t mov_imm2wide(u8 const *stream, size_t len) {
 			{
 				if (b == 6) {
 					/* direct address */
-					printf("mov [%hu], word %hu\n", stream[2] | ((u16)stream[3] << 8), stream[4] | ((u16)stream[5] << 8));
+					printf("mov [%hu], word %hu\n", DATA16(stream[2], stream[3]), DATA16(stream[4], stream[5]));
 					return 6;
 				} else {
-					printf("mov [%s], word %hu\n", eac_table[b], stream[2] | ((u16)stream[3] << 8));
+					printf("mov [%s], word %hu\n", eac_table[b], DATA16(stream[2], stream[3]));
 					return 4;
 				}
 			}
 		case 1:
-			printf("mov [%s + %hu], word %hu\n", eac_table[b], SIGN_EXTEND(stream[2]), stream[3] | ((u16)stream[4] << 8));
+			printf("mov [%s + %hu], word %hu\n", eac_table[b], SIGN_EXTEND(stream[2]), DATA16(stream[3], stream[4]));
 			return 5;
 		case 2:
-			printf("mov [%s + %hu], word %hu\n", eac_table[b], stream[2] | ((u16)stream[3] << 8), stream[4] | ((u16)stream[5] << 8));
+			printf("mov [%s + %hu], word %hu\n", eac_table[b], DATA16(stream[2], stream[3]), DATA16(stream[4], stream[5]));
 			return 6;
 		case 3:
 			b |= 0x8;
-			printf("mov %s, word %hu\n", reg_names[b], stream[2] | ((u16)stream[3] << 8));
+			printf("mov %s, word %hu\n", reg_names[b], DATA16(stream[2], stream[3]));
 			return 4;
 	}
 
@@ -208,25 +209,25 @@ static size_t mov_imm2wide(u8 const *stream, size_t len) {
 
 static size_t mov_mem2al(u8 const *stream, size_t len) {
 	/* TODO(benjamin): assert len. */
-	printf("mov al, [%hu]\n", stream[1] | ((u16)stream[2] << 8));
+	printf("mov al, [%hu]\n", DATA16(stream[1], stream[2]));
 	return 3;
 }
 
 static size_t mov_mem2ax(u8 const *stream, size_t len) {
 	/* TODO(benjamin): assert len. */
-	printf("mov ax, [%hu]\n", stream[1] | ((u16)stream[2] << 8));
+	printf("mov ax, [%hu]\n", DATA16(stream[1], stream[2]));
 	return 3;
 }
 
 static size_t mov_al2mem(u8 const *stream, size_t len) {
 	/* TODO(benjamin): assert len. */
-	printf("mov [%hu], al\n", stream[1] | ((u16)stream[2] << 8));
+	printf("mov [%hu], al\n", DATA16(stream[1], stream[2]));
 	return 3;
 }
 
 static size_t mov_ax2mem(u8 const *stream, size_t len) {
 	/* TODO(benjamin): assert len. */
-	printf("mov [%hu], ax\n", stream[1] | ((u16)stream[2] << 8));
+	printf("mov [%hu], ax\n", DATA16(stream[1], stream[2]));
 	return 3;
 }
 
