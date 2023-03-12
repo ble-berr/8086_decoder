@@ -637,11 +637,14 @@ static size_t dispatch(u8 const *stream, size_t len) {
 					/* unused */
 					return 0;
 				case 0x2:
-					/* TODO(benjamin): not implemented: ret immed16 */
-					return 0;
+					if (len < 3) {
+						return 0;
+					}
+					printf("ret %hu\n", DATA16(stream[1], stream[2]));
+					return 3;
 				case 0x3:
-					/* TODO(benjamin): not implemented: ret */
-					return 0;
+					printf("ret\n");
+					return 1;
 				case 0x4:
 					/* TODO(benjamin): not implemented: les */
 					return 0;
@@ -657,13 +660,16 @@ static size_t dispatch(u8 const *stream, size_t len) {
 					/* unused */
 					return 0;
 				case 0xa:
-					/* TODO(benjamin): not implemented: ret immed16 */
-					/* NOTE(benjamin): again?? */
-					return 0;
+					/* NOTE(benjamin): again?? intersegment? */
+					if (len < 3) {
+						return 0;
+					}
+					printf("ret %hu\n", DATA16(stream[1], stream[2]));
+					return 3;
 				case 0xb:
-					/* TODO(benjamin): not implemented: ret */
-					/* NOTE(benjamin): again?? */
-					return 0;
+					/* NOTE(benjamin): again?? intersegment? */
+					printf("ret\n");
+					return 1;
 				case 0xc:
 					/* TODO(benjamin): not implemented: int 3 */
 					return 0;
