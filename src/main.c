@@ -488,6 +488,11 @@ static size_t shift_rot_rm(u8 const *stream, size_t len) {
 	return step;
 }
 
+static size_t string_op(char const *mnemonic, bool wide) {
+	printf("rep %s%c\n", mnemonic, wide?'w':'b');
+	return 1;
+}
+
 static size_t dispatch(u8 const *stream, size_t len) {
 	if (len == 0) {
 		return 0;
@@ -607,22 +612,17 @@ static size_t dispatch(u8 const *stream, size_t len) {
 					case 1:
 						return mov_acc2mem(wide, stream, len);
 					case 2:
-						/* TODO(benjamin): not implemented: movs */
-						return 0;
+						return string_op("movs", (stream[0] & 1u) != 0);
 					case 3:
-						/* TODO(benjamin): not implemented: cmps */
-						return 0;
+						return string_op("cmps", (stream[0] & 1u) != 0);
 					case 4:
 						return test_acc_immediate(wide, stream, len);
 					case 5:
-						/* TODO(benjamin): not implemented: stos */
-						return 0;
+						return string_op("stos", (stream[0] & 1u) != 0);
 					case 6:
-						/* TODO(benjamin): not implemented: lods */
-						return 0;
+						return string_op("lods", (stream[0] & 1u) != 0);
 					case 7:
-						/* TODO(benjamin): not implemented: scas */
-						return 0;
+						return string_op("scas", (stream[0] & 1u) != 0);
 					default:
 						/* unreachable */
 						return 0;
