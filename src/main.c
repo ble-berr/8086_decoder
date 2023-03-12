@@ -778,8 +778,57 @@ static size_t dispatch(u8 const *stream, size_t len) {
 					return 0;
 			}
 		case 0xf:
-			/* TODO(benjamin): not implemented. */
-			return 0;
+			switch (stream[0] & 0xf) {
+				case 0x0:
+					/* TODO(benjamin): not implemented: lock */
+					return 0;
+				case 0x1:
+					/* unused */
+					return 0;
+				case 0x2:
+					printf("repne\n");
+					return 1;
+				case 0x3:
+					printf("repe\n");
+					return 1;
+				case 0x4:
+					printf("hlt\n");
+					return 1;
+				case 0x5:
+					printf("cmc\n");
+					return 1;
+				case 0x6:
+				case 0x7:
+					/* TODO(benjamin): not implemented. */
+					return 0;
+				case 0x8:
+					printf("clc\n");
+					return 1;
+				case 0x9:
+					printf("stc\n");
+					return 1;
+				case 0xa:
+					printf("sti\n");
+					return 1;
+				case 0xb:
+					printf("sti\n");
+					return 1;
+				case 0xc:
+					printf("std\n");
+					return 1;
+				case 0xd:
+					printf("std\n");
+					return 1;
+				case 0xe:
+					/* TODO(benjamin): not implemented: inc/dec rm8 */
+					return 0;
+				case 0xf:
+					/* TODO(benjamin): not implemented. */
+					return 0;
+				default:
+					/* unreachable */
+					return 0;
+			}
 		default:
 			/* unreachable */
 			return 0;
