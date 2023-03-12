@@ -717,6 +717,7 @@ static size_t dispatch(u8 const *stream, size_t len) {
 				case 0xe:
 				case 0xf:
 					/* TODO(benjamin): not implemented: esc */
+					/* NOTE(benjamin): not supported by NASM? */
 					return 0;
 				default:
 					/* unreachable */
