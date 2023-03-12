@@ -671,11 +671,14 @@ static size_t dispatch(u8 const *stream, size_t len) {
 					printf("ret\n");
 					return 1;
 				case 0xc:
-					/* TODO(benjamin): not implemented: int 3 */
-					return 0;
+					printf("int 3\n");
+					return 1;
 				case 0xd:
-					/* TODO(benjamin): not implemented: int immed8 */
-					return 0;
+					if (len < 2) {
+						return 0;
+					}
+					printf("int %hhu\n", stream[1]);
+					return 2;
 				case 0xe:
 					printf("into\n");
 					return 1;
