@@ -514,6 +514,58 @@ static size_t acc_io_op(u8 const *stream, size_t len) {
 	}
 }
 
+static char const *const ff_extra_ops_mnemonics[8] = {
+	"inc",
+	"dec",
+	"call",
+	"call",
+	"jmp",
+	"jmp",
+	"push",
+	/* 7 is unused. */
+	NULL,
+};
+
+static size_t ff_extra_ops(u8 const *stream, size_t len) {
+	u8 step = 2;
+	if (len < step) {
+		return 0;
+	}
+
+	u8 const mod = stream[1] >> 6u;
+	u8 const op = (stream[1] & 070u) >> 3u;
+	u8 const rm = stream[1] & 7u;
+
+	switch (op) {
+		case 0:
+		case 1:
+		case 3:
+		case 5:
+		case 6:
+			step += 2;
+			if (len < step) {
+				return 0;
+			}
+			printf("%s [%hu]\n", ff_extra_ops_mnemonics[op], DATA16(stream[2], stream[3]));
+			return step;
+		case 2:
+		case 4:
+			{
+				rm_buf_t rm_buf;
+				step += render_rm(rm_buf, true, mod, rm, stream + step, len - step);
+				if (len < step) {
+					return 0;
+				}
+				printf("%s %s\n", ff_extra_ops_mnemonics[op], rm_buf);
+				return step;
+			}
+		case 7:
+		default:
+			/* unreachable */
+			return 0;
+	}
+}
+
 static size_t dispatch(u8 const *stream, size_t len) {
 	if (len == 0) {
 		return 0;
@@ -823,8 +875,7 @@ static size_t dispatch(u8 const *stream, size_t len) {
 					/* TODO(benjamin): not implemented: inc/dec rm8 */
 					return 0;
 				case 0xf:
-					/* TODO(benjamin): not implemented. */
-					return 0;
+					return ff_extra_ops(stream, len);
 				default:
 					/* unreachable */
 					return 0;
