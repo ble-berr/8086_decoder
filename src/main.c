@@ -493,6 +493,27 @@ static size_t string_op(char const *mnemonic, bool wide) {
 	return 1;
 }
 
+static size_t acc_io_op(u8 const *stream, size_t len) {
+	if (len < 1) {
+		return 0;
+	}
+
+	bool const immediate = (stream[0] & 8u) != 0;
+	bool const out = (stream[0] & 2u) != 0;
+	bool const wide = (stream[0] & 1u) != 0;
+
+	if (immediate) {
+		if (len < 2) {
+			return 0;
+		}
+		printf("%s %hu, %s\n", out?"out":"in", stream[1], acc_mnemonics[wide]);
+		return 2;
+	} else {
+		printf("%s dx, %s\n", out?"out":"in", acc_mnemonics[wide]);
+		return 1;
+	}
+}
+
 static size_t dispatch(u8 const *stream, size_t len) {
 	if (len == 0) {
 		return 0;
@@ -731,17 +752,10 @@ static size_t dispatch(u8 const *stream, size_t len) {
 				case 0x3:
 					return extra_jump(stream, len);
 				case 0x4:
-					/* TODO(benjamin): not implemented: in al, immed8 */
-					return 0;
 				case 0x5:
-					/* TODO(benjamin): not implemented: in ax, immed8 */
-					return 0;
 				case 0x6:
-					/* TODO(benjamin): not implemented: out al, immed8 */
-					return 0;
 				case 0x7:
-					/* TODO(benjamin): not implemented: out ax, immed8 */
-					return 0;
+					return acc_io_op(stream, len);
 				case 0x8:
 					/* TODO(benjamin): not implemented: call near-proc */
 					return 0;
@@ -755,17 +769,10 @@ static size_t dispatch(u8 const *stream, size_t len) {
 					/* TODO(benjamin): not implemented: jmp short-label */
 					return 0;
 				case 0xc:
-					/* TODO(benjamin): not implemented: in al, dx */
-					return 0;
 				case 0xd:
-					/* TODO(benjamin): not implemented: in ax, dx */
-					return 0;
 				case 0xe:
-					/* TODO(benjamin): not implemented: out al, dx */
-					return 0;
 				case 0xf:
-					/* TODO(benjamin): not implemented: out ax, dx */
-					return 0;
+					return acc_io_op(stream, len);
 				default:
 					/* unreachable */
 					return 0;
