@@ -536,34 +536,19 @@ static size_t ff_extra_ops(u8 const *stream, size_t len) {
 	u8 const op = (stream[1] & 070u) >> 3u;
 	u8 const rm = stream[1] & 7u;
 
-	switch (op) {
-		case 0:
-		case 1:
-		case 3:
-		case 5:
-		case 6:
-			step += 2;
-			if (len < step) {
-				return 0;
-			}
-			printf("%s [%hu]", ff_extra_ops_mnemonics[op], DATA16(stream[2], stream[3]));
-			return step;
-		case 2:
-		case 4:
-			{
-				rm_buf_t rm_buf;
-				step += render_rm(rm_buf, true, mod, rm, stream + step, len - step);
-				if (len < step) {
-					return 0;
-				}
-				printf("%s %s", ff_extra_ops_mnemonics[op], rm_buf);
-				return step;
-			}
-		case 7:
-		default:
-			/* unreachable */
-			return 0;
+	if (op == 7) {
+		/* unused */
+		return 0;
 	}
+
+	rm_buf_t rm_buf;
+	step += render_rm(rm_buf, true, mod, rm, stream + step, len - step);
+	if (len < step) {
+		return 0;
+	}
+
+	printf("%s word %s", ff_extra_ops_mnemonics[op], rm_buf);
+	return step;
 }
 
 static char const *const f7_extra_ops_mnemonics[8] = {
@@ -661,10 +646,10 @@ static size_t dispatch(u8 const *stream, size_t len) {
 					return 0;
 			}
 		case 0x4:
-			printf("%s %s", (stream[0] & 8u)?"dec":"inc", register_mnemonics[stream[0] & 7u]);
+			printf("%s %s", (stream[0] & 8u)?"dec":"inc", register_mnemonics[(stream[0] & 7u) | 8u]);
 			return 1;
 		case 0x5:
-			printf("%s %s", (stream[0] & 8u)?"pop":"push", register_mnemonics[stream[0] & 7u]);
+			printf("%s %s", (stream[0] & 8u)?"pop":"push", register_mnemonics[(stream[0] & 7u) | 8u]);
 			return 1;
 		case 0x6:
 			/* unused. */
