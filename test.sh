@@ -1,11 +1,18 @@
 #!/bin/sh
 set -o errexit -o nounset
 
-mkdir -p tests
+course_listing_dir="course_material/perfaware/part1"
+testing_dir="tests"
 
-for listing in listings/*.asm ; do
-	output="${listing#listings/}"
-	output="tests/${output%.asm}"
+test -d "$course_listing_dir"
+
+rm -rf "$testing_dir"
+mkdir -p  "$testing_dir"
+
+for listing in "$course_listing_dir"/*.asm ; do
+	test -f "$listing"
+	output="${listing##*/}"
+	output="${testing_dir}/${output%.asm}"
 
 	ref_output="${output}_ref"
 	test_output="${output}_test"
