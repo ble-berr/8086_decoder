@@ -108,9 +108,9 @@ static size_t decode_r_to_rm(u8 const *stream, size_t len, char const *inst) {
 	bool const reverse = (stream[0] & 0x2) != 0;
 
 	if (reverse) {
-		printf("%s %s, %s\n", inst, r_buf, rm_buf);
+		printf("%s %s, %s", inst, r_buf, rm_buf);
 	} else {
-		printf("%s %s, %s\n", inst, rm_buf, r_buf);
+		printf("%s %s, %s", inst, rm_buf, r_buf);
 	}
 
 	return step;
@@ -125,7 +125,7 @@ static size_t decode_r_vs_rm(u8 const *stream, size_t len, char const *inst) {
 		return 0;
 	}
 
-	printf("%s %s, %s\n", inst, r_buf, rm_buf);
+	printf("%s %s, %s", inst, r_buf, rm_buf);
 	return step;
 }
 
@@ -149,7 +149,7 @@ static size_t mov_immediate_to_reg(u8 const *stream, size_t len) {
 		immediate = SIGN_EXTEND(stream[1]);
 	}
 
-	printf("mov %s, %hu\n", register_mnemonics[reg], immediate);
+	printf("mov %s, %hu", register_mnemonics[reg], immediate);
 	return step;
 }
 
@@ -163,21 +163,21 @@ static size_t mov_imm2narrow(u8 const *stream, size_t len) {
 			{
 				if (b == 6) {
 					/* direct address */
-					printf("mov [%hu], byte %hu\n", DATA16(stream[2], stream[3]), SIGN_EXTEND(stream[4]));
+					printf("mov [%hu], byte %hu", DATA16(stream[2], stream[3]), SIGN_EXTEND(stream[4]));
 					return 5;
 				} else {
-					printf("mov [%s], byte %hu\n", eac_table[b], SIGN_EXTEND(stream[2]));
+					printf("mov [%s], byte %hu", eac_table[b], SIGN_EXTEND(stream[2]));
 					return 3;
 				}
 			}
 		case 1:
-			printf("mov [%s + %hu], byte %hu\n", eac_table[b], SIGN_EXTEND(stream[2]), SIGN_EXTEND(stream[3]));
+			printf("mov [%s + %hu], byte %hu", eac_table[b], SIGN_EXTEND(stream[2]), SIGN_EXTEND(stream[3]));
 			return 4;
 		case 2:
-			printf("mov [%s + %hu], byte %hu\n", eac_table[b], DATA16(stream[2], stream[3]), SIGN_EXTEND(stream[4]));
+			printf("mov [%s + %hu], byte %hu", eac_table[b], DATA16(stream[2], stream[3]), SIGN_EXTEND(stream[4]));
 			return 5;
 		case 3:
-			printf("mov %s, byte %hu\n", register_mnemonics[b], SIGN_EXTEND(stream[2]));
+			printf("mov %s, byte %hu", register_mnemonics[b], SIGN_EXTEND(stream[2]));
 			return 3;
 	}
 
@@ -193,21 +193,21 @@ static size_t mov_imm2wide(u8 const *stream, size_t len) {
 		case 0:
 			if (b == 6) {
 				/* direct address */
-				printf("mov [%hu], word %hu\n", DATA16(stream[2], stream[3]), DATA16(stream[4], stream[5]));
+				printf("mov [%hu], word %hu", DATA16(stream[2], stream[3]), DATA16(stream[4], stream[5]));
 				return 6;
 			} else {
-				printf("mov [%s], word %hu\n", eac_table[b], DATA16(stream[2], stream[3]));
+				printf("mov [%s], word %hu", eac_table[b], DATA16(stream[2], stream[3]));
 				return 4;
 			}
 		case 1:
-			printf("mov [%s + %hu], word %hu\n", eac_table[b], SIGN_EXTEND(stream[2]), DATA16(stream[3], stream[4]));
+			printf("mov [%s + %hu], word %hu", eac_table[b], SIGN_EXTEND(stream[2]), DATA16(stream[3], stream[4]));
 			return 5;
 		case 2:
-			printf("mov [%s + %hu], word %hu\n", eac_table[b], DATA16(stream[2], stream[3]), DATA16(stream[4], stream[5]));
+			printf("mov [%s + %hu], word %hu", eac_table[b], DATA16(stream[2], stream[3]), DATA16(stream[4], stream[5]));
 			return 6;
 		case 3:
 			b |= 0x08;
-			printf("mov %s, word %hu\n", register_mnemonics[b], DATA16(stream[2], stream[3]));
+			printf("mov %s, word %hu", register_mnemonics[b], DATA16(stream[2], stream[3]));
 			return 4;
 	}
 
@@ -222,10 +222,10 @@ static size_t op_acc_immediate(u8 const *stream, size_t len, char const *mnemoni
 	}
 
 	if (wide) {
-		printf("%s ax, word %hu\n", mnemonic, DATA16(stream[1], stream[2]));
+		printf("%s ax, word %hu", mnemonic, DATA16(stream[1], stream[2]));
 	} else {
 		/* TODO(benjamin): standard compliant signed conversion. */
-		printf("%s al, byte %hhi\n", mnemonic, (s8)stream[1]);
+		printf("%s al, byte %hhi", mnemonic, (s8)stream[1]);
 	}
 	return step;
 }
@@ -277,7 +277,7 @@ static size_t op_rm_immediate(u8 const *stream, size_t len) {
 		immediate = stream[step - 1];
 	}
 
-	printf("%s %s %s, %hu\n", arithmetic_mnemonics[op], wide?"word":"byte", rm_buf, immediate);
+	printf("%s %s %s, %hu", arithmetic_mnemonics[op], wide?"word":"byte", rm_buf, immediate);
 	return step;
 }
 
@@ -285,13 +285,13 @@ static char const *const acc_mnemonics[2] = { "al", "ax" };
 
 static size_t mov_mem2acc(bool wide, u8 const *stream, size_t len) {
 	/* TODO(benjamin): assert len. */
-	printf("mov %s, [%hu]\n", acc_mnemonics[wide], DATA16(stream[1], stream[2]));
+	printf("mov %s, [%hu]", acc_mnemonics[wide], DATA16(stream[1], stream[2]));
 	return 3;
 }
 
 static size_t mov_acc2mem(bool wide, u8 const *stream, size_t len) {
 	/* TODO(benjamin): assert len. */
-	printf("mov [%hu], %s\n", DATA16(stream[1], stream[2]), acc_mnemonics[wide]);
+	printf("mov [%hu], %s", DATA16(stream[1], stream[2]), acc_mnemonics[wide]);
 	return 3;
 }
 
@@ -321,7 +321,7 @@ static size_t conditional_jump(u8 const *stream, size_t len) {
 	/* TODO(benjamin): standard compliant signed conversion. */
 	/* TODO(benjamin): test and handle overflow */
 	s8 const ip_inc_8 = stream[1] + (u8)2;
-	printf("%s $%+hhi\n", conditional_jump_mnemonics[stream[0] & 0xf], ip_inc_8);
+	printf("%s $%+hhi", conditional_jump_mnemonics[stream[0] & 0xf], ip_inc_8);
 	return 2;
 }
 
@@ -339,7 +339,7 @@ static size_t extra_jump(u8 const *stream, size_t len) {
 	/* TODO(benjamin): standard compliant signed conversion. */
 	/* TODO(benjamin): test and handle overflow */
 	s8 const ip_inc_8 = stream[1] + (u8)2;
-	printf("%s $%+hhi\n", extra_jump_mnemonics[stream[0] & 0x3], ip_inc_8);
+	printf("%s $%+hhi", extra_jump_mnemonics[stream[0] & 0x3], ip_inc_8);
 	return 2;
 }
 
@@ -362,7 +362,7 @@ static size_t segment_op(u8 const *stream, size_t len) {
 		return 0;
 	} else {
 		bool const pop = (stream[0] & 1u) != 0;
-		printf("%s %s\n", pop?"pop":"push", segment_register_mnemonics[reg]);
+		printf("%s %s", pop?"pop":"push", segment_register_mnemonics[reg]);
 	}
 
 	return 1;
@@ -387,9 +387,9 @@ static size_t mov_seg_to_rm(u8 const *stream, size_t len) {
 	}
 
 	if (reverse) {
-		printf("mov %s, %s\n", segment_register_mnemonics[seg], rm_buf);
+		printf("mov %s, %s", segment_register_mnemonics[seg], rm_buf);
 	} else {
-		printf("mov %s, %s\n", rm_buf, segment_register_mnemonics[seg]);
+		printf("mov %s, %s", rm_buf, segment_register_mnemonics[seg]);
 	}
 
 	return 0;
@@ -411,7 +411,7 @@ static size_t lea_rm_to_r(u8 const *stream, size_t len) {
 		return 0;
 	}
 
-	printf("lea %s, %s\n", register_mnemonics[reg], rm_buf);
+	printf("lea %s, %s", register_mnemonics[reg], rm_buf);
 	return step;
 }
 
@@ -431,7 +431,7 @@ static size_t pop_rm(u8 const *stream, size_t len) {
 		return 0;
 	}
 
-	printf("pop %s\n", rm_buf);
+	printf("pop %s", rm_buf);
 	return step;
 }
 
@@ -484,12 +484,12 @@ static size_t shift_rot_rm(u8 const *stream, size_t len) {
 		return 0;
 	}
 
-	printf("%s %s, %s\n", shift_rot_mnemonics[op], rm_buf, cl?"cl":"1");
+	printf("%s %s, %s", shift_rot_mnemonics[op], rm_buf, cl?"cl":"1");
 	return step;
 }
 
 static size_t string_op(char const *mnemonic, bool wide) {
-	printf("rep %s%c\n", mnemonic, wide?'w':'b');
+	printf("rep %s%c", mnemonic, wide?'w':'b');
 	return 1;
 }
 
@@ -506,10 +506,10 @@ static size_t acc_io_op(u8 const *stream, size_t len) {
 		if (len < 2) {
 			return 0;
 		}
-		printf("%s %hu, %s\n", out?"out":"in", stream[1], acc_mnemonics[wide]);
+		printf("%s %hu, %s", out?"out":"in", stream[1], acc_mnemonics[wide]);
 		return 2;
 	} else {
-		printf("%s dx, %s\n", out?"out":"in", acc_mnemonics[wide]);
+		printf("%s dx, %s", out?"out":"in", acc_mnemonics[wide]);
 		return 1;
 	}
 }
@@ -546,7 +546,7 @@ static size_t ff_extra_ops(u8 const *stream, size_t len) {
 			if (len < step) {
 				return 0;
 			}
-			printf("%s [%hu]\n", ff_extra_ops_mnemonics[op], DATA16(stream[2], stream[3]));
+			printf("%s [%hu]", ff_extra_ops_mnemonics[op], DATA16(stream[2], stream[3]));
 			return step;
 		case 2:
 		case 4:
@@ -556,7 +556,7 @@ static size_t ff_extra_ops(u8 const *stream, size_t len) {
 				if (len < step) {
 					return 0;
 				}
-				printf("%s %s\n", ff_extra_ops_mnemonics[op], rm_buf);
+				printf("%s %s", ff_extra_ops_mnemonics[op], rm_buf);
 				return step;
 			}
 		case 7:
@@ -616,7 +616,7 @@ static size_t f7_extra_ops(u8 const *stream, size_t len) {
 					}
 					immediate = stream[step - 1];
 				}
-				printf("test %s %s, %hu\n", wide?"word":"byte", rm_buf, immediate);
+				printf("test %s %s, %hu", wide?"word":"byte", rm_buf, immediate);
 			}
 			break;
 		case 2:
@@ -625,7 +625,7 @@ static size_t f7_extra_ops(u8 const *stream, size_t len) {
 		case 5:
 		case 6:
 		case 7:
-			printf("%s %s %s\n", f7_extra_ops_mnemonics[op], wide?"word":"byte", rm_buf);
+			printf("%s %s %s", f7_extra_ops_mnemonics[op], wide?"word":"byte", rm_buf);
 			break;
 		case 1: /* unused */
 		default: /* unreachable */
@@ -661,10 +661,10 @@ static size_t dispatch(u8 const *stream, size_t len) {
 					return 0;
 			}
 		case 0x4:
-			printf("%s %s\n", (stream[0] & 8u)?"dec":"inc", register_mnemonics[stream[0] & 7u]);
+			printf("%s %s", (stream[0] & 8u)?"dec":"inc", register_mnemonics[stream[0] & 7u]);
 			return 1;
 		case 0x5:
-			printf("%s %s\n", (stream[0] & 8u)?"pop":"push", register_mnemonics[stream[0] & 7u]);
+			printf("%s %s", (stream[0] & 8u)?"pop":"push", register_mnemonics[stream[0] & 7u]);
 			return 1;
 		case 0x6:
 			/* unused. */
@@ -705,7 +705,7 @@ static size_t dispatch(u8 const *stream, size_t len) {
 			switch (stream[0] & 0xf) {
 				case 0x0:
 					/* NOTE(benjamin): xchg ax, ax */
-					printf("nop\n");
+					printf("nop");
 					return 1;
 				case 0x1:
 				case 0x2:
@@ -714,31 +714,31 @@ static size_t dispatch(u8 const *stream, size_t len) {
 				case 0x5:
 				case 0x6:
 				case 0x7:
-					printf("xchg ax, %s\n", register_mnemonics[stream[0] | 8u]);
+					printf("xchg ax, %s", register_mnemonics[stream[0] | 8u]);
 					return 1;
 				case 0x8:
-					printf("cbw\n");
+					printf("cbw");
 					return 1;
 				case 0x9:
-					printf("cwd\n");
+					printf("cwd");
 					return 1;
 				case 0xa:
 					/* TODO(benjamin): not implemented: call */
 					return 0;
 				case 0xb:
-					printf("wait\n");
+					printf("wait");
 					return 1;
 				case 0xc:
-					printf("pushf\n");
+					printf("pushf");
 					return 1;
 				case 0xd:
-					printf("popf\n");
+					printf("popf");
 					return 1;
 				case 0xe:
-					printf("sahf\n");
+					printf("sahf");
 					return 1;
 				case 0xf:
-					printf("lahf\n");
+					printf("lahf");
 					return 1;
 				default:
 					/* unreachable. */
@@ -781,10 +781,10 @@ static size_t dispatch(u8 const *stream, size_t len) {
 					if (len < 3) {
 						return 0;
 					}
-					printf("ret %hu\n", DATA16(stream[1], stream[2]));
+					printf("ret %hu", DATA16(stream[1], stream[2]));
 					return 3;
 				case 0x3:
-					printf("ret\n");
+					printf("ret");
 					return 1;
 				case 0x4:
 					/* TODO(benjamin): not implemented: les */
@@ -805,26 +805,26 @@ static size_t dispatch(u8 const *stream, size_t len) {
 					if (len < 3) {
 						return 0;
 					}
-					printf("ret %hu\n", DATA16(stream[1], stream[2]));
+					printf("ret %hu", DATA16(stream[1], stream[2]));
 					return 3;
 				case 0xb:
 					/* NOTE(benjamin): again?? intersegment? */
-					printf("ret\n");
+					printf("ret");
 					return 1;
 				case 0xc:
-					printf("int 3\n");
+					printf("int 3");
 					return 1;
 				case 0xd:
 					if (len < 2) {
 						return 0;
 					}
-					printf("int %hhu\n", stream[1]);
+					printf("int %hhu", stream[1]);
 					return 2;
 				case 0xe:
-					printf("into\n");
+					printf("into");
 					return 1;
 				case 0xf:
-					printf("iret\n");
+					printf("iret");
 					return 1;
 				default:
 					/* not implemented. */
@@ -838,10 +838,10 @@ static size_t dispatch(u8 const *stream, size_t len) {
 				case 0x3:
 					return shift_rot_rm(stream, len);
 				case 0x4:
-					printf("aam\n");
+					printf("aam");
 					return 1;
 				case 0x5:
-					printf("aad\n");
+					printf("aad");
 					return 1;
 				case 0x6:
 					/* unused */
@@ -906,37 +906,37 @@ static size_t dispatch(u8 const *stream, size_t len) {
 					/* unused */
 					return 0;
 				case 0x2:
-					printf("repne\n");
+					printf("repne");
 					return 1;
 				case 0x3:
-					printf("repe\n");
+					printf("repe");
 					return 1;
 				case 0x4:
-					printf("hlt\n");
+					printf("hlt");
 					return 1;
 				case 0x5:
-					printf("cmc\n");
+					printf("cmc");
 					return 1;
 				case 0x6:
 				case 0x7:
 					return f7_extra_ops(stream, len);
 				case 0x8:
-					printf("clc\n");
+					printf("clc");
 					return 1;
 				case 0x9:
-					printf("stc\n");
+					printf("stc");
 					return 1;
 				case 0xa:
-					printf("sti\n");
+					printf("sti");
 					return 1;
 				case 0xb:
-					printf("sti\n");
+					printf("sti");
 					return 1;
 				case 0xc:
-					printf("std\n");
+					printf("std");
 					return 1;
 				case 0xd:
-					printf("std\n");
+					printf("std");
 					return 1;
 				case 0xe:
 					/* TODO(benjamin): not implemented: inc/dec rm8 */
@@ -983,6 +983,11 @@ int main(void) {
 			printf("; unrecognized instruction: program[0x%zx]: 0x%02hhx\n", i, program[i]);
 			return 0;
 		}
+		printf(" ;");
+		for (size_t j = 0; j < step; ++j) {
+			printf(" 0x%02hhx", program[i + j]);
+		}
+		printf("\n");
 		i += step;
 	}
 
