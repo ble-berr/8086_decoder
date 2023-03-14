@@ -415,7 +415,7 @@ static size_t lea_rm_to_r(u8 const *stream, size_t len) {
 	return step;
 }
 
-static size_t pop_rm(u8 const *stream, size_t len) {
+static size_t pop_rm(bool wide, u8 const *stream, size_t len) {
 	u8 step = 2;
 	if (len < step) {
 		return 0;
@@ -431,7 +431,7 @@ static size_t pop_rm(u8 const *stream, size_t len) {
 		return 0;
 	}
 
-	printf("pop %s", rm_buf);
+	printf("pop %s %s", wide?"word":"byte", rm_buf);
 	return step;
 }
 
@@ -696,7 +696,7 @@ static size_t dispatch(u8 const *stream, size_t len) {
 				case 0xe:
 					return mov_seg_to_rm(stream, len);
 				case 0xf:
-					return pop_rm(stream, len);
+					return pop_rm(true, stream, len);
 				default:
 					/* unreachable */
 					return 0;
