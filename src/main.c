@@ -566,6 +566,74 @@ static size_t ff_extra_ops(u8 const *stream, size_t len) {
 	}
 }
 
+static char const *const f7_extra_ops_mnemonics[8] = {
+	"test",
+	/* 1 is unused */
+	NULL,
+	"not",
+	"neg",
+	"mul",
+	"imul",
+	"div",
+	"idiv",
+};
+
+static size_t f7_extra_ops(u8 const *stream, size_t len) {
+	u8 step = 2;
+	if (len < step) {
+		return 0;
+	}
+
+	bool const wide = (stream[0] & 1u) != 0;
+	u8 const mod = stream[1] >> 6u;
+	u8 const op = (stream[1] >> 3u) & 7u;
+	u8 const rm = stream[1] & 7u;
+
+	if (op == 1) {
+		return 0;
+	}
+
+	rm_buf_t rm_buf;
+	step += render_rm(rm_buf, wide, mod, rm, stream, len);
+	if (len < step) {
+		return 0;
+	}
+
+	switch (op) {
+		case 0:
+			{
+				u16 immediate;
+				if (wide) {
+					step += 2;
+					if (len < step) {
+						return 0;
+					}
+					immediate = DATA16(stream[step - 2], stream[step - 1]);
+				} else {
+					step += 1;
+					if (len < step) {
+						return 0;
+					}
+					immediate = stream[step - 1];
+				}
+				printf("test %s %s, %hu\n", wide?"word":"byte", rm_buf, immediate);
+			}
+			break;
+		case 2:
+		case 3:
+		case 4:
+		case 5:
+		case 6:
+		case 7:
+			printf("%s %s %s\n", f7_extra_ops_mnemonics[op], wide?"word":"byte", rm_buf);
+			break;
+		case 1: /* unused */
+		default: /* unreachable */
+			return 0;
+	}
+	return step;
+}
+
 static size_t dispatch(u8 const *stream, size_t len) {
 	if (len == 0) {
 		return 0;
@@ -851,8 +919,7 @@ static size_t dispatch(u8 const *stream, size_t len) {
 					return 1;
 				case 0x6:
 				case 0x7:
-					/* TODO(benjamin): not implemented. */
-					return 0;
+					return f7_extra_ops(stream, len);
 				case 0x8:
 					printf("clc\n");
 					return 1;
