@@ -969,13 +969,13 @@ static size_t dispatch(u8 const *stream, size_t len) {
 					printf("stc");
 					return 1;
 				case 0xa:
-					printf("sti");
+					printf("cli");
 					return 1;
 				case 0xb:
 					printf("sti");
 					return 1;
 				case 0xc:
-					printf("std");
+					printf("cld");
 					return 1;
 				case 0xd:
 					printf("std");
