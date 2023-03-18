@@ -503,7 +503,7 @@ static size_t shift_rot_rm(u8 const *stream, size_t len) {
 		return 0;
 	}
 
-	printf("%s %s, %s", shift_rot_mnemonics[op], rm_buf, cl?"cl":"1");
+	printf("%s %s %s, %s", shift_rot_mnemonics[op], wide?"word":"byte", rm_buf, cl?"cl":"1");
 	return step;
 }
 
