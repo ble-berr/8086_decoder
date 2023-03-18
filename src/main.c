@@ -872,11 +872,13 @@ static size_t dispatch(u8 const *stream, size_t len) {
 				case 0x3:
 					return shift_rot_rm(stream, len);
 				case 0x4:
+					/* NOTE(benjamin): assert stream[1] == 0x0a ? */
 					printf("aam");
-					return 1;
+					return 2;
 				case 0x5:
+					/* NOTE(benjamin): assert stream[1] == 0x0a ? */
 					printf("aad");
-					return 1;
+					return 2;
 				case 0x6:
 					/* unused */
 					return 0;
