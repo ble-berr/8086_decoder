@@ -627,6 +627,27 @@ static size_t f7_extra_ops(u8 const *stream, size_t len) {
 	return step;
 }
 
+static size_t inc_dec_rm8(u8 const *stream, size_t len) {
+	size_t step = 2;
+	if (len < step) {
+		return 0;
+	}
+
+	u8 const mod = stream[1] >> 6u;
+	/* NOTE(benjamin): assert that bits 4 and 5 are 0? */
+	bool const decrement = (stream[1] & 010u) != 0;
+	u8 const rm = stream[1] & 07u;
+
+	rm_buf_t rm_buf;
+	step += render_rm(rm_buf, false, mod, rm, stream + step, len - step);
+	if (len < step) {
+		return 0;
+	}
+
+	printf("%s byte %s", decrement?"dec":"inc", rm_buf);
+	return step;
+}
+
 static size_t dispatch(u8 const *stream, size_t len) {
 	if (len == 0) {
 		return 0;
@@ -930,8 +951,7 @@ static size_t dispatch(u8 const *stream, size_t len) {
 					printf("std");
 					return 1;
 				case 0xe:
-					/* TODO(benjamin): not implemented: inc/dec rm8 */
-					return 0;
+					return inc_dec_rm8(stream, len);
 				case 0xf:
 					return ff_extra_ops(stream, len);
 				default:
