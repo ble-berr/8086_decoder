@@ -942,8 +942,9 @@ static size_t dispatch(u8 const *stream, size_t len) {
 		case 0xf:
 			switch (stream[0] & 0xf) {
 				case 0x0:
-					/* TODO(benjamin): not implemented: lock */
-					return 0;
+					/* TODO(benjamin): fix formatting to prefix next instruction */
+					printf("lock");
+					return 1;
 				case 0x1:
 					/* unused */
 					return 0;
