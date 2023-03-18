@@ -699,7 +699,7 @@ static size_t dispatch(u8 const *stream, size_t len) {
 				case 0x5:
 				case 0x6:
 				case 0x7:
-					printf("xchg ax, %s", register_mnemonics[stream[0] | 8u]);
+					printf("xchg ax, %s", register_mnemonics[(stream[0] & 0xf) | 8u]);
 					return 1;
 				case 0x8:
 					printf("cbw");
