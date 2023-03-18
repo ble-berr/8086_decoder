@@ -609,7 +609,7 @@ static size_t f7_extra_ops(u8 const *stream, size_t len) {
 	}
 
 	rm_buf_t rm_buf;
-	step += render_rm(rm_buf, wide, mod, rm, stream, len);
+	step += render_rm(rm_buf, wide, mod, rm, stream + step, len - step);
 	if (len < step) {
 		return 0;
 	}
