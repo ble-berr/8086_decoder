@@ -376,8 +376,11 @@ static size_t misc_0x30_ops(u8 const *stream, size_t len) {
 			/* TODO(benjamin): not implemented: segment operations */
 			return 0;
 		case 0x21:
-			/* DAA, DAS, AAA, AAS */
-			printf("%ca%c", (stream[0] & 0x10u)?'a':'d', (stream[0] & 0x01u)?'s':'a');
+			{
+				char const *mnemonics[4] = { "daa", "das", "aaa", "aas" };
+				u8 const index = (stream[0] & 0x18u) >> 3u;
+				printf("%s", mnemonics[index]);
+			}
 			return 1;
 		default:
 			/* unreachable */
