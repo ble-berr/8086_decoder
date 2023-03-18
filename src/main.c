@@ -498,7 +498,7 @@ static size_t acc_io_op(u8 const *stream, size_t len) {
 		return 0;
 	}
 
-	bool const immediate = (stream[0] & 8u) != 0;
+	bool const immediate = (stream[0] & 8u) == 0;
 	bool const out = (stream[0] & 2u) != 0;
 	bool const wide = (stream[0] & 1u) != 0;
 
@@ -506,10 +506,10 @@ static size_t acc_io_op(u8 const *stream, size_t len) {
 		if (len < 2) {
 			return 0;
 		}
-		printf("%s %hu, %s", out?"out":"in", stream[1], acc_mnemonics[wide]);
+		printf("%s %s, %hu", out?"out":"in", acc_mnemonics[wide], stream[1]);
 		return 2;
 	} else {
-		printf("%s dx, %s", out?"out":"in", acc_mnemonics[wide]);
+		printf("%s %s, dx", out?"out":"in", acc_mnemonics[wide]);
 		return 1;
 	}
 }
