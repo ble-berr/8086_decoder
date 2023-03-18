@@ -832,8 +832,8 @@ static size_t dispatch(u8 const *stream, size_t len) {
 					/* unused */
 					return 0;
 				case 0x7:
-					/* TODO(benjamin): not implemented: xlat */
-					return 0;
+					printf("xlat");
+					return 1;
 				case 0x8:
 				case 0x9:
 				case 0xa:
