@@ -518,7 +518,7 @@ static size_t shift_rot_rm(u8 const *stream, size_t len) {
 }
 
 static size_t string_op(char const *mnemonic, bool wide) {
-	printf("rep %s%c", mnemonic, wide?'w':'b');
+	printf("%s%c", mnemonic, wide?'w':'b');
 	return 1;
 }
 
