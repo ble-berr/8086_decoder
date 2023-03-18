@@ -506,10 +506,18 @@ static size_t acc_io_op(u8 const *stream, size_t len) {
 		if (len < 2) {
 			return 0;
 		}
-		printf("%s %s, %hu", out?"out":"in", acc_mnemonics[wide], stream[1]);
+		if (out) {
+			printf("out %hu, %s", stream[1], acc_mnemonics[wide]);
+		} else {
+			printf("in %s, %hu", acc_mnemonics[wide], stream[1]);
+		}
 		return 2;
 	} else {
-		printf("%s %s, dx", out?"out":"in", acc_mnemonics[wide]);
+		if (out) {
+			printf("out dx, %s", acc_mnemonics[wide]);
+		} else {
+			printf("in %s, dx", acc_mnemonics[wide]);
+		}
 		return 1;
 	}
 }
