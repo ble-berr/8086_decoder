@@ -116,16 +116,23 @@ static size_t decode_r_to_rm(u8 const *stream, size_t len, char const *inst) {
 	return step;
 }
 
-static size_t decode_r_vs_rm(u8 const *stream, size_t len, char const *inst) {
+static size_t decode_r_vs_rm(u8 const *stream, size_t len) {
+
 	rm_buf_t r_buf;
 	rm_buf_t rm_buf;
-	u8 step = render_r_to_rm(r_buf, rm_buf, stream, len);
 
+	size_t const step = render_r_to_rm(r_buf, rm_buf, stream, len);
 	if (step == 0) {
 		return 0;
 	}
 
-	printf("%s %s, %s", inst, r_buf, rm_buf);
+	bool const test = (stream[0] & 0x2u) == 0;
+
+	if (test) {
+		printf("test %s, %s", rm_buf, r_buf);
+	} else {
+		printf("xchg %s, %s", r_buf, rm_buf);
+	}
 	return step;
 }
 
@@ -716,10 +723,9 @@ static size_t dispatch(u8 const *stream, size_t len) {
 					return op_rm_immediate(stream, len);
 				case 0x4:
 				case 0x5:
-					return decode_r_vs_rm(stream, len, "test");
 				case 0x6:
 				case 0x7:
-					return decode_r_vs_rm(stream, len, "xchg");
+					return decode_r_vs_rm(stream, len);
 				case 0x8:
 				case 0x9:
 				case 0xa:
