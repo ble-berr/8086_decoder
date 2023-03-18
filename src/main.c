@@ -357,7 +357,7 @@ static size_t segment_op(u8 const *stream, size_t len) {
 
 	u8 const reg = (stream[0] & 030u) >> 3u;
 
-	if (stream[0] & 0x10u) {
+	if (stream[0] & 0x20u) {
 		/* TODO(benjamin): segment override prefixes */
 		return 0;
 	} else {
