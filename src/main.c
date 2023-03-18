@@ -395,7 +395,7 @@ static size_t mov_seg_to_rm(u8 const *stream, size_t len) {
 	return 0;
 }
 
-static size_t lea_rm_to_r(u8 const *stream, size_t len) {
+static size_t load_rm_to_r(char const *op_mnemonic, u8 const *stream, size_t len) {
 	u8 step = 2;
 	if (len < step) {
 		return 0;
@@ -411,7 +411,7 @@ static size_t lea_rm_to_r(u8 const *stream, size_t len) {
 		return 0;
 	}
 
-	printf("lea %s, %s", register_mnemonics[reg], rm_buf);
+	printf("%s %s, %s", op_mnemonic, register_mnemonics[reg], rm_buf);
 	return step;
 }
 
@@ -677,7 +677,7 @@ static size_t dispatch(u8 const *stream, size_t len) {
 				case 0xc:
 					return mov_seg_to_rm(stream, len);
 				case 0xd:
-					return lea_rm_to_r(stream, len);
+					return load_rm_to_r("lea", stream, len);
 				case 0xe:
 					return mov_seg_to_rm(stream, len);
 				case 0xf:
@@ -772,11 +772,9 @@ static size_t dispatch(u8 const *stream, size_t len) {
 					printf("ret");
 					return 1;
 				case 0x4:
-					/* TODO(benjamin): not implemented: les */
-					return 0;
+					return load_rm_to_r("les", stream, len);
 				case 0x5:
-					/* TODO(benjamin): not implemented: lds */
-					return 0;
+					return load_rm_to_r("lds", stream, len);
 				case 0x6:
 					return mov_imm2narrow(stream, len);
 				case 0x7:
