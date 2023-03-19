@@ -537,7 +537,7 @@ static size_t decode_r_vs_rm(struct instruction *instruction, u8 const *stream, 
 
 	size_t step = 2;
 	if (len < step) {
-		return step;
+		return 0;
 	}
 
 	bool const wide = (stream[0] & 0x1u) != 0;
@@ -562,7 +562,7 @@ static size_t decode_r_vs_rm(struct instruction *instruction, u8 const *stream, 
 				stream + step,
 				len - step);
 		if (len < step) {
-			return step;
+			return 0;
 		}
 	} else {
 		instruction->type = INSTRUCTION_TYPE_TEST;
@@ -574,7 +574,7 @@ static size_t decode_r_vs_rm(struct instruction *instruction, u8 const *stream, 
 				stream + step,
 				len - step);
 		if (len < step) {
-			return step;
+			return 0;
 		}
 		instruction->src.type = OPERAND_REGISTER;
 		instruction->src.register_id = op_fields.a;
