@@ -185,6 +185,35 @@ struct instruction {
 	struct instruction_operand src;
 };
 
+static void print_instruction_operand(struct instruction_operand const *operand) {
+	assert(operand != NULL);
+
+	switch (operand->modifier) {
+		case OPERAND_MODIFIER_NONE:
+			break;
+	}
+	switch (operand->type) {
+		case OPERAND_NONE:
+			return;
+		case OPERAND_REGISTER:
+			printf("%s", register_mnemonics[operand->register_id]);
+			break;
+		case OPERAND_EFFECTIVE_ADDRESS:
+			printf("[%s", eac_table[operand->eac.base]);
+			if (operand->eac.offset) {
+				printf(" + %hi", (s16)operand->eac.offset);
+			}
+			printf("]");
+			break;
+		case OPERAND_DIRECT_ADDRESS:
+			printf("[%hu]", operand->direct_address);
+			break;
+		case OPERAND_IMMEDIATE_VALUE:
+			printf("%hu", operand->immediate_value);
+			break;
+	}
+}
+
 static void print_instruction(struct instruction const *instruction) {
 	assert(instruction != NULL);
 	if (instruction->type == INSTRUCTION_TYPE_NONE) {
@@ -205,60 +234,14 @@ static void print_instruction(struct instruction const *instruction) {
 	}
 	printf(" ");
 
-	switch (instruction->dst.modifier) {
-		case OPERAND_MODIFIER_NONE:
-			break;
-	}
-	switch (instruction->dst.type) {
-		case OPERAND_NONE:
-			return;
-		case OPERAND_REGISTER:
-			printf("%s", register_mnemonics[instruction->dst.register_id]);
-			break;
-		case OPERAND_EFFECTIVE_ADDRESS:
-			printf("[%s", eac_table[instruction->dst.eac.base]);
-			if (instruction->dst.eac.offset) {
-				printf(" + %hi", (s16)instruction->dst.eac.offset);
-			}
-			printf("]");
-			break;
-		case OPERAND_DIRECT_ADDRESS:
-			printf("[%hu]", instruction->dst.direct_address);
-			break;
-		case OPERAND_IMMEDIATE_VALUE:
-			printf("%hu", instruction->dst.immediate_value);
-			break;
-	}
+	print_instruction_operand(&instruction->dst);
 
 	if (instruction->src.type == OPERAND_NONE) {
 		return;
 	}
 	printf(", ");
 
-	switch (instruction->src.modifier) {
-		case OPERAND_MODIFIER_NONE:
-			break;
-	}
-	switch (instruction->src.type) {
-		case OPERAND_NONE:
-			return;
-		case OPERAND_REGISTER:
-			printf("%s", register_mnemonics[instruction->src.register_id]);
-			break;
-		case OPERAND_EFFECTIVE_ADDRESS:
-			printf("[%s", eac_table[instruction->src.eac.base]);
-			if (instruction->src.eac.offset) {
-				printf(" + %hi", (s16)instruction->src.eac.offset);
-			}
-			printf("]");
-			break;
-		case OPERAND_DIRECT_ADDRESS:
-			printf("[%hu]", instruction->src.direct_address);
-			break;
-		case OPERAND_IMMEDIATE_VALUE:
-			printf("%hu", instruction->src.immediate_value);
-			break;
-	}
+	print_instruction_operand(&instruction->src);
 
 	return;
 }
