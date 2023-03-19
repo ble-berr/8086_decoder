@@ -582,27 +582,30 @@ static size_t decode_r_vs_rm(struct instruction *instruction, u8 const *stream, 
 	return step;
 }
 
-static size_t mov_immediate_to_reg(u8 const *stream, size_t len) {
-	u8 step = 2;
+static size_t mov_immediate_to_reg(struct instruction *instruction, u8 const *stream, size_t len) {
+	assert(instruction);
+
+	instruction->type = INSTRUCTION_TYPE_MOV;
+	instruction->dst.type = OPERAND_REGISTER;
+	instruction->src.type = OPERAND_IMMEDIATE_VALUE;
+
+	bool const wide = (stream[0] & 0x08u) != 0;
+
+	size_t step = 2 + wide;
 	if (len < step) {
 		return 0;
 	}
-	bool const wide = !!(stream[0] & 0x08);
-	u8 reg = stream[0] & 0x07;
-	u16 immediate;
+
+	u8 reg = stream[0] & 0x07u;
 
 	if (wide) {
-		step += 1;
-		if (len < step) {
-			return 0;
-		}
-		reg |= 0x08;
-		immediate = DATA16(stream[1], stream[2]);
+		instruction->dst.register_id = reg | 0x08u;
+		instruction->src.immediate_value = DATA16(stream[1], stream[2]);
 	} else {
-		immediate = SIGN_EXTEND(stream[1]);
+		instruction->dst.register_id = reg;
+		instruction->src.immediate_value = SIGN_EXTEND(stream[1]);
 	}
 
-	printf("mov %s, %hu", register_mnemonics[reg], immediate);
 	return step;
 }
 
@@ -1266,7 +1269,7 @@ static size_t dispatch(u8 const *stream, size_t len, struct instruction *instruc
 				}
 			}
 		case 0xb:
-			return mov_immediate_to_reg(stream, len);
+			return mov_immediate_to_reg(instruction, stream, len);
 		case 0xc:
 			switch (stream[0] & 0xf) {
 				case 0x0:
