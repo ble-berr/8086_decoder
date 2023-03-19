@@ -61,9 +61,6 @@ static char const *eac_table[EAC_BASE_MAX] = {
 #define INST_ARG_BUF_SIZE 24
 typedef char rm_buf_t[INST_ARG_BUF_SIZE];
 
-enum operand_modifier {
-	OPERAND_MODIFIER_NONE,
-};
 enum operand_type {
 	OPERAND_NONE,
 	OPERAND_REGISTER,
@@ -72,9 +69,15 @@ enum operand_type {
 	OPERAND_IMMEDIATE_VALUE,
 };
 
+enum operand_width {
+	OPERAND_WIDTH_BYTE,
+	OPERAND_WIDTH_WORD,
+	OPERAND_WIDTH_IMPLICIT,
+};
+
 struct instruction_operand {
-	enum operand_modifier modifier;
 	enum operand_type type;
+	enum operand_width width;
 	union {
 		enum register_id register_id;
 		struct eac {
@@ -87,12 +90,28 @@ struct instruction_operand {
 };
 
 enum instruction_type {
+	INSTRUCTION_TYPE_AAD,
+	INSTRUCTION_TYPE_AAM,
 	INSTRUCTION_TYPE_ADC,
 	INSTRUCTION_TYPE_ADD,
 	INSTRUCTION_TYPE_AND,
+	INSTRUCTION_TYPE_CBW,
+	INSTRUCTION_TYPE_CLC,
+	INSTRUCTION_TYPE_CLD,
+	INSTRUCTION_TYPE_CLI,
+	INSTRUCTION_TYPE_CMC,
 	INSTRUCTION_TYPE_CMP,
+	INSTRUCTION_TYPE_CMPSB,
+	INSTRUCTION_TYPE_CMPSW,
+	INSTRUCTION_TYPE_CWD,
 	INSTRUCTION_TYPE_DEC,
+	INSTRUCTION_TYPE_DIV,
+	INSTRUCTION_TYPE_HLT,
+	INSTRUCTION_TYPE_IDIV,
+	INSTRUCTION_TYPE_IMUL,
 	INSTRUCTION_TYPE_INC,
+	INSTRUCTION_TYPE_INTO,
+	INSTRUCTION_TYPE_IRET,
 	INSTRUCTION_TYPE_JB,
 	INSTRUCTION_TYPE_JBE,
 	INSTRUCTION_TYPE_JCXZ,
@@ -110,33 +129,72 @@ enum instruction_type {
 	INSTRUCTION_TYPE_JO,
 	INSTRUCTION_TYPE_JP,
 	INSTRUCTION_TYPE_JS,
+	INSTRUCTION_TYPE_LAHF,
+	INSTRUCTION_TYPE_LODSB,
+	INSTRUCTION_TYPE_LODSW,
 	INSTRUCTION_TYPE_LOOP,
 	INSTRUCTION_TYPE_LOOPE,
 	INSTRUCTION_TYPE_LOOPNE,
 	INSTRUCTION_TYPE_MOV,
+	INSTRUCTION_TYPE_MOVSB,
+	INSTRUCTION_TYPE_MOVSW,
+	INSTRUCTION_TYPE_MUL,
+	INSTRUCTION_TYPE_NEG,
+	INSTRUCTION_TYPE_NOT,
 	INSTRUCTION_TYPE_OR,
 	INSTRUCTION_TYPE_POP,
+	INSTRUCTION_TYPE_POPF,
 	INSTRUCTION_TYPE_PUSH,
+	INSTRUCTION_TYPE_PUSHF,
 	INSTRUCTION_TYPE_RCL,
 	INSTRUCTION_TYPE_RCR,
+	INSTRUCTION_TYPE_RET,
 	INSTRUCTION_TYPE_ROL,
 	INSTRUCTION_TYPE_ROR,
+	INSTRUCTION_TYPE_SAHF,
 	INSTRUCTION_TYPE_SAR,
 	INSTRUCTION_TYPE_SBB,
+	INSTRUCTION_TYPE_SCASB,
+	INSTRUCTION_TYPE_SCASW,
 	INSTRUCTION_TYPE_SHL,
 	INSTRUCTION_TYPE_SHR,
+	INSTRUCTION_TYPE_STC,
+	INSTRUCTION_TYPE_STD,
+	INSTRUCTION_TYPE_STI,
+	INSTRUCTION_TYPE_STOSB,
+	INSTRUCTION_TYPE_STOSW,
 	INSTRUCTION_TYPE_SUB,
+	INSTRUCTION_TYPE_TEST,
+	INSTRUCTION_TYPE_WAIT,
+	INSTRUCTION_TYPE_XCHG,
+	INSTRUCTION_TYPE_XLAT,
 	INSTRUCTION_TYPE_XOR,
 	/* can be used to size enum indexed arrays. */
 	INSTRUCTION_TYPE_NONE,
 };
 char const *instruction_mnemonics[INSTRUCTION_TYPE_NONE] = {
+	"aad",
+	"aam",
 	"adc",
 	"add",
 	"and",
+	"cbw",
+	"clc",
+	"cld",
+	"cli",
+	"cmc",
 	"cmp",
+	"cmpsb",
+	"cmpsw",
+	"cwd",
 	"dec",
+	"div",
+	"hlt",
+	"idiv",
+	"imul",
 	"inc",
+	"into",
+	"iret",
 	"jb",
 	"jbe",
 	"jcxz",
@@ -154,44 +212,113 @@ char const *instruction_mnemonics[INSTRUCTION_TYPE_NONE] = {
 	"jo",
 	"jp",
 	"js",
+	"lahf",
+	"lodsb",
+	"lodsw",
 	"loop",
 	"loope",
 	"loopne",
 	"mov",
+	"movsb",
+	"movsw",
+	"mul",
+	"neg",
+	"not",
 	"or",
 	"pop",
+	"popf",
 	"push",
+	"pushf",
 	"rcl",
 	"rcr",
+	"ret",
 	"rol",
 	"ror",
+	"sahf",
 	"sar",
 	"sbb",
+	"scasb",
+	"scasw",
 	"shl",
 	"shr",
+	"stc",
+	"std",
+	"sti",
+	"stosb",
+	"stosw",
 	"sub",
+	"test",
+	"wait",
+	"xchg",
+	"xlat",
 	"xor",
 };
 
+/* NOTE(benjamin): modeling the modifiers as a single enum might be too
+ * simplistic. I am not sure whether any could be combined or not. */
 enum instruction_modifier {
 	INSTRUCTION_MODIFIER_LOCK,
+	INSTRUCTION_MODIFIER_REPE,
+	INSTRUCTION_MODIFIER_REPNE,
+	/* can be used to size enum indexed arrays. */
 	INSTRUCTION_MODIFIER_NONE,
+};
+char const *const instruction_modifier_mnemonics[INSTRUCTION_MODIFIER_NONE] = {
+	"lock",
+	"repe",
+	"repne",
+};
+
+enum segment_override {
+	SEGMENT_OVERRIDE_CS,
+	SEGMENT_OVERRIDE_DS,
+	SEGMENT_OVERRIDE_ES,
+	SEGMENT_OVERRIDE_SS,
+	/* can be used to size enum indexed arrays. */
+	SEGMENT_OVERRIDE_NONE,
+};
+char const *const segment_override_mnemonics[SEGMENT_OVERRIDE_NONE] = {
+	"cs",
+	"ds",
+	"es",
+	"ss",
 };
 
 struct instruction {
-	enum instruction_modifier modifier;
 	enum instruction_type type;
+	enum instruction_modifier modifier;
+	enum segment_override segment_override;
 	struct instruction_operand dst;
 	struct instruction_operand src;
 };
 
+static void clear_instruction(struct instruction *instruction) {
+	assert(instruction != NULL);
+	instruction->type = INSTRUCTION_TYPE_NONE;
+	instruction->modifier = INSTRUCTION_MODIFIER_NONE;
+	instruction->segment_override = SEGMENT_OVERRIDE_NONE;
+
+	instruction->dst.type = OPERAND_NONE;
+	instruction->dst.width = OPERAND_WIDTH_IMPLICIT;
+
+	instruction->src.type = OPERAND_NONE;
+	instruction->src.width = OPERAND_WIDTH_IMPLICIT;
+}
+
 static void print_instruction_operand(struct instruction_operand const *operand) {
 	assert(operand != NULL);
 
-	switch (operand->modifier) {
-		case OPERAND_MODIFIER_NONE:
+	switch (operand->width) {
+		case OPERAND_WIDTH_IMPLICIT:
+			break;
+		case OPERAND_WIDTH_BYTE:
+			printf("byte ");
+			break;
+		case OPERAND_WIDTH_WORD:
+			printf("word ");
 			break;
 	}
+
 	switch (operand->type) {
 		case OPERAND_NONE:
 			return;
@@ -220,12 +347,8 @@ static void print_instruction(struct instruction const *instruction) {
 		return;
 	}
 
-	switch (instruction->modifier) {
-		case INSTRUCTION_MODIFIER_NONE:
-			break;
-		case INSTRUCTION_MODIFIER_LOCK:
-			printf("lock ");
-			break;
+	if (instruction->modifier != INSTRUCTION_MODIFIER_NONE) {
+		printf("%s ", instruction_modifier_mnemonics[instruction->modifier]);
 	}
 	printf("%s", instruction_mnemonics[instruction->type]);
 
@@ -233,6 +356,9 @@ static void print_instruction(struct instruction const *instruction) {
 		return;
 	}
 	printf(" ");
+	if (instruction->segment_override != SEGMENT_OVERRIDE_NONE) {
+		printf("%s:", segment_override_mnemonics[instruction->segment_override]);
+	}
 
 	print_instruction_operand(&instruction->dst);
 
@@ -244,6 +370,61 @@ static void print_instruction(struct instruction const *instruction) {
 	print_instruction_operand(&instruction->src);
 
 	return;
+}
+
+static size_t process_mod_operand(
+		struct instruction_operand *operand,
+		bool wide,
+		u8 mod,
+		u8 rm,
+		u8 const *stream,
+		size_t len
+		)
+{
+	assert(operand);
+	u8 step = 0;
+	switch (mod) {
+		case 0:
+			if (rm == 6) {
+				step += 2;
+				if (len < step) {
+					return step;
+				}
+				operand->type = OPERAND_DIRECT_ADDRESS;
+				operand->direct_address = DATA16(stream[0], stream[1]);
+			} else {
+				operand->type = OPERAND_EFFECTIVE_ADDRESS;
+				operand->eac.base = rm;
+				operand->eac.offset = 0;
+			}
+			break;
+		case 1:
+			step += 1;
+			if (len < step) {
+				return step;
+			}
+			operand->type = OPERAND_EFFECTIVE_ADDRESS;
+			operand->eac.base = rm;
+			operand->eac.offset = SIGN_EXTEND(stream[0]);
+			break;
+		case 2:
+			step += 2;
+			if (len < step) {
+				return step;
+			}
+			operand->type = OPERAND_EFFECTIVE_ADDRESS;
+			operand->eac.base = rm;
+			operand->eac.offset = DATA16(stream[0], stream[1]);
+			break;
+		case 3:
+			if (wide) {
+				rm |= 0x08;
+			}
+			operand->type = OPERAND_REGISTER;
+			operand->register_id = rm;
+			break;
+	}
+	return step;
 }
 
 static size_t render_rm(rm_buf_t buf, bool wide, u8 mod, u8 rm, u8 const *stream, size_t len) {
@@ -331,22 +512,41 @@ static size_t decode_r_to_rm(u8 const *stream, size_t len, char const *inst) {
 	return step;
 }
 
-static size_t decode_r_vs_rm(u8 const *stream, size_t len) {
+static size_t decode_r_vs_rm(struct instruction *instruction, u8 const *stream, size_t len) {
+	assert(instruction);
 
-	rm_buf_t r_buf;
-	rm_buf_t rm_buf;
-
-	size_t const step = render_r_to_rm(r_buf, rm_buf, stream, len);
-	if (step == 0) {
-		return 0;
+	size_t step = 2;
+	if (len < step) {
+		return step;
 	}
 
-	bool const test = (stream[0] & 0x2u) == 0;
+	bool const wide = (stream[0] & 0x1u) != 0;
+	bool const xchg = (stream[0] & 0x2u) != 0;
 
-	if (test) {
-		printf("test %s, %s", rm_buf, r_buf);
+	u8 const mod = (stream[1] >> 6);
+	u8 r = (stream[1] >> 3u) & 07u;
+	u8 const rm = stream[1] & 07u;
+
+	if (wide) {
+		r |= 010u;
+	}
+
+	if (xchg) {
+		instruction->type = INSTRUCTION_TYPE_XCHG;
+		instruction->dst.type = OPERAND_REGISTER;
+		instruction->dst.register_id = r;
+		step += process_mod_operand(&instruction->src, wide, mod, rm, stream + step, len - step);
+		if (len < step) {
+			return step;
+		}
 	} else {
-		printf("xchg %s, %s", r_buf, rm_buf);
+		instruction->type = INSTRUCTION_TYPE_TEST;
+		step += process_mod_operand(&instruction->dst, wide, mod, rm, stream + step, len - step);
+		if (len < step) {
+			return step;
+		}
+		instruction->src.type = OPERAND_REGISTER;
+		instruction->src.register_id = r;
 	}
 	return step;
 }
@@ -732,11 +932,6 @@ static size_t shift_rot_rm(u8 const *stream, size_t len) {
 	return step;
 }
 
-static size_t string_op(char const *mnemonic, bool wide) {
-	printf("%s%c", mnemonic, wide?'w':'b');
-	return 1;
-}
-
 static size_t acc_io_op(u8 const *stream, size_t len) {
 	if (len < 1) {
 		return 0;
@@ -803,19 +998,7 @@ static size_t ff_extra_ops(u8 const *stream, size_t len) {
 	return step;
 }
 
-static char const *const f7_extra_ops_mnemonics[8] = {
-	"test",
-	/* 1 is unused */
-	NULL,
-	"not",
-	"neg",
-	"mul",
-	"imul",
-	"div",
-	"idiv",
-};
-
-static size_t f7_extra_ops(u8 const *stream, size_t len) {
+static size_t f7_extra_ops(struct instruction *instruction, u8 const *stream, size_t len) {
 	u8 step = 2;
 	if (len < step) {
 		return 0;
@@ -827,42 +1010,58 @@ static size_t f7_extra_ops(u8 const *stream, size_t len) {
 	u8 const rm = stream[1] & 7u;
 
 	if (op == 1) {
+		/* unused */
 		return 0;
 	}
 
-	rm_buf_t rm_buf;
-	step += render_rm(rm_buf, wide, mod, rm, stream + step, len - step);
+	step += process_mod_operand(&instruction->dst, wide, mod, rm, stream + step, len - step);
 	if (len < step) {
 		return 0;
 	}
 
 	switch (op) {
 		case 0:
-			{
-				u16 immediate;
-				if (wide) {
-					step += 2;
-					if (len < step) {
-						return 0;
-					}
-					immediate = DATA16(stream[step - 2], stream[step - 1]);
-				} else {
-					step += 1;
-					if (len < step) {
-						return 0;
-					}
-					immediate = stream[step - 1];
+			instruction->type = INSTRUCTION_TYPE_TEST;
+			instruction->src.type = OPERAND_IMMEDIATE_VALUE;
+			if (wide) {
+				step += 2;
+				if (len < step) {
+					return 0;
 				}
-				printf("test %s %s, %hu", wide?"word":"byte", rm_buf, immediate);
+				instruction->src.width = OPERAND_WIDTH_WORD;
+				instruction->src.immediate_value = DATA16(stream[step - 2], stream[step - 1]);
+			} else {
+				step += 1;
+				if (len < step) {
+					return 0;
+				}
+				instruction->src.width = OPERAND_WIDTH_BYTE;
+				instruction->src.immediate_value = stream[step - 1];
 			}
 			break;
 		case 2:
+			instruction->type = INSTRUCTION_TYPE_NOT;
+			instruction->dst.width = wide ? OPERAND_WIDTH_WORD : OPERAND_WIDTH_BYTE;
+			break;
 		case 3:
+			instruction->type = INSTRUCTION_TYPE_NEG;
+			instruction->dst.width = wide ? OPERAND_WIDTH_WORD : OPERAND_WIDTH_BYTE;
+			break;
 		case 4:
+			instruction->type = INSTRUCTION_TYPE_MUL;
+			instruction->dst.width = wide ? OPERAND_WIDTH_WORD : OPERAND_WIDTH_BYTE;
+			break;
 		case 5:
+			instruction->type = INSTRUCTION_TYPE_IMUL;
+			instruction->dst.width = wide ? OPERAND_WIDTH_WORD : OPERAND_WIDTH_BYTE;
+			break;
 		case 6:
+			instruction->type = INSTRUCTION_TYPE_DIV;
+			instruction->dst.width = wide ? OPERAND_WIDTH_WORD : OPERAND_WIDTH_BYTE;
+			break;
 		case 7:
-			printf("%s %s %s", f7_extra_ops_mnemonics[op], wide?"word":"byte", rm_buf);
+			instruction->type = INSTRUCTION_TYPE_IDIV;
+			instruction->dst.width = wide ? OPERAND_WIDTH_WORD : OPERAND_WIDTH_BYTE;
 			break;
 		case 1: /* unused */
 		default: /* unreachable */
@@ -921,10 +1120,16 @@ static size_t dispatch(u8 const *stream, size_t len, struct instruction *instruc
 					return 0;
 			}
 		case 0x4:
-			printf("%s %s", (stream[0] & 8u)?"dec":"inc", register_mnemonics[(stream[0] & 7u) | 8u]);
+			instruction->type = (stream[0] & 8u) ? INSTRUCTION_TYPE_DEC : INSTRUCTION_TYPE_INC;
+			instruction->dst.type = OPERAND_REGISTER;
+			instruction->dst.register_id = (stream[0] & 7u) | 8u;
+			instruction->src.type = OPERAND_NONE;
 			return 1;
 		case 0x5:
-			printf("%s %s", (stream[0] & 8u)?"pop":"push", register_mnemonics[(stream[0] & 7u) | 8u]);
+			instruction->type = (stream[0] & 8u) ? INSTRUCTION_TYPE_POP : INSTRUCTION_TYPE_PUSH;
+			instruction->dst.type = OPERAND_REGISTER;
+			instruction->dst.register_id = (stream[0] & 7u) | 8u;
+			instruction->src.type = OPERAND_NONE;
 			return 1;
 		case 0x6:
 			/* unused. */
@@ -942,7 +1147,7 @@ static size_t dispatch(u8 const *stream, size_t len, struct instruction *instruc
 				case 0x5:
 				case 0x6:
 				case 0x7:
-					return decode_r_vs_rm(stream, len);
+					return decode_r_vs_rm(instruction, stream, len);
 				case 0x8:
 				case 0x9:
 				case 0xa:
@@ -962,10 +1167,7 @@ static size_t dispatch(u8 const *stream, size_t len, struct instruction *instruc
 			}
 		case 0x9:
 			switch (stream[0] & 0xf) {
-				case 0x0:
-					/* NOTE(benjamin): xchg ax, ax */
-					printf("nop");
-					return 1;
+				case 0x0: /* NOTE(benjamin): nop (xchg ax, ax) */
 				case 0x1:
 				case 0x2:
 				case 0x3:
@@ -973,31 +1175,49 @@ static size_t dispatch(u8 const *stream, size_t len, struct instruction *instruc
 				case 0x5:
 				case 0x6:
 				case 0x7:
-					printf("xchg ax, %s", register_mnemonics[(stream[0] & 0xf) | 8u]);
+					instruction->type = INSTRUCTION_TYPE_XCHG;
+					instruction->dst.type = OPERAND_REGISTER;
+					instruction->dst.register_id = REGISTER_AX;
+					instruction->src.type = OPERAND_REGISTER;
+					instruction->src.register_id = (stream[0] & 7u) | 8u;
 					return 1;
 				case 0x8:
-					printf("cbw");
+					instruction->type = INSTRUCTION_TYPE_CBW;
+					instruction->dst.type = OPERAND_NONE;
+					instruction->src.type = OPERAND_NONE;
 					return 1;
 				case 0x9:
-					printf("cwd");
+					instruction->type = INSTRUCTION_TYPE_CWD;
+					instruction->dst.type = OPERAND_NONE;
+					instruction->src.type = OPERAND_NONE;
 					return 1;
 				case 0xa:
 					/* TODO(benjamin): not implemented: call */
 					return 0;
 				case 0xb:
-					printf("wait");
+					instruction->type = INSTRUCTION_TYPE_WAIT;
+					instruction->dst.type = OPERAND_NONE;
+					instruction->src.type = OPERAND_NONE;
 					return 1;
 				case 0xc:
-					printf("pushf");
+					instruction->type = INSTRUCTION_TYPE_PUSHF;
+					instruction->dst.type = OPERAND_NONE;
+					instruction->src.type = OPERAND_NONE;
 					return 1;
 				case 0xd:
-					printf("popf");
+					instruction->type = INSTRUCTION_TYPE_POPF;
+					instruction->dst.type = OPERAND_NONE;
+					instruction->src.type = OPERAND_NONE;
 					return 1;
 				case 0xe:
-					printf("sahf");
+					instruction->type = INSTRUCTION_TYPE_SAHF;
+					instruction->dst.type = OPERAND_NONE;
+					instruction->src.type = OPERAND_NONE;
 					return 1;
 				case 0xf:
-					printf("lahf");
+					instruction->type = INSTRUCTION_TYPE_LAHF;
+					instruction->dst.type = OPERAND_NONE;
+					instruction->src.type = OPERAND_NONE;
 					return 1;
 				default:
 					/* unreachable. */
@@ -1012,17 +1232,27 @@ static size_t dispatch(u8 const *stream, size_t len, struct instruction *instruc
 					case 1:
 						return mov_acc2mem(wide, stream, len);
 					case 2:
-						return string_op("movs", (stream[0] & 1u) != 0);
+						instruction->type = (stream[0] & 1u) ?
+							INSTRUCTION_TYPE_MOVSW : INSTRUCTION_TYPE_MOVSB;
+						return 1;
 					case 3:
-						return string_op("cmps", (stream[0] & 1u) != 0);
+						instruction->type = (stream[0] & 1u) ?
+							INSTRUCTION_TYPE_CMPSW : INSTRUCTION_TYPE_CMPSB;
+						return 1;
 					case 4:
 						return test_acc_immediate(wide, stream, len);
 					case 5:
-						return string_op("stos", (stream[0] & 1u) != 0);
+						instruction->type = (stream[0] & 1u) ?
+							INSTRUCTION_TYPE_STOSW : INSTRUCTION_TYPE_STOSB;
+						return 1;
 					case 6:
-						return string_op("lods", (stream[0] & 1u) != 0);
+						instruction->type = (stream[0] & 1u) ?
+							INSTRUCTION_TYPE_LODSW : INSTRUCTION_TYPE_LODSB;
+						return 1;
 					case 7:
-						return string_op("scas", (stream[0] & 1u) != 0);
+						instruction->type = (stream[0] & 1u) ?
+							INSTRUCTION_TYPE_SCASW : INSTRUCTION_TYPE_SCASB;
+						return 1;
 					default:
 						/* unreachable */
 						return 0;
@@ -1043,7 +1273,9 @@ static size_t dispatch(u8 const *stream, size_t len, struct instruction *instruc
 					printf("ret %hu", DATA16(stream[1], stream[2]));
 					return 3;
 				case 0x3:
-					printf("ret");
+					instruction->type = INSTRUCTION_TYPE_RET;
+					instruction->dst.type = OPERAND_NONE;
+					instruction->src.type = OPERAND_NONE;
 					return 1;
 				case 0x4:
 					return load_rm_to_r("les", stream, len);
@@ -1066,7 +1298,9 @@ static size_t dispatch(u8 const *stream, size_t len, struct instruction *instruc
 					return 3;
 				case 0xb:
 					/* NOTE(benjamin): again?? intersegment? */
-					printf("ret");
+					instruction->type = INSTRUCTION_TYPE_RET;
+					instruction->dst.type = OPERAND_NONE;
+					instruction->src.type = OPERAND_NONE;
 					return 1;
 				case 0xc:
 					printf("int 3");
@@ -1078,10 +1312,14 @@ static size_t dispatch(u8 const *stream, size_t len, struct instruction *instruc
 					printf("int %hhu", stream[1]);
 					return 2;
 				case 0xe:
-					printf("into");
+					instruction->type = INSTRUCTION_TYPE_INTO;
+					instruction->dst.type = OPERAND_NONE;
+					instruction->src.type = OPERAND_NONE;
 					return 1;
 				case 0xf:
-					printf("iret");
+					instruction->type = INSTRUCTION_TYPE_IRET;
+					instruction->dst.type = OPERAND_NONE;
+					instruction->src.type = OPERAND_NONE;
 					return 1;
 				default:
 					/* not implemented. */
@@ -1096,17 +1334,23 @@ static size_t dispatch(u8 const *stream, size_t len, struct instruction *instruc
 					return shift_rot_rm(stream, len);
 				case 0x4:
 					/* NOTE(benjamin): assert stream[1] == 0x0a ? */
-					printf("aam");
+					instruction->type = INSTRUCTION_TYPE_AAM;
+					instruction->dst.type = OPERAND_NONE;
+					instruction->src.type = OPERAND_NONE;
 					return 2;
 				case 0x5:
 					/* NOTE(benjamin): assert stream[1] == 0x0a ? */
-					printf("aad");
+					instruction->type = INSTRUCTION_TYPE_AAD;
+					instruction->dst.type = OPERAND_NONE;
+					instruction->src.type = OPERAND_NONE;
 					return 2;
 				case 0x6:
 					/* unused */
 					return 0;
 				case 0x7:
-					printf("xlat");
+					instruction->type = INSTRUCTION_TYPE_XLAT;
+					instruction->dst.type = OPERAND_NONE;
+					instruction->src.type = OPERAND_NONE;
 					return 1;
 				case 0x8:
 				case 0x9:
@@ -1159,44 +1403,59 @@ static size_t dispatch(u8 const *stream, size_t len, struct instruction *instruc
 		case 0xf:
 			switch (stream[0] & 0xf) {
 				case 0x0:
-					/* TODO(benjamin): fix formatting to prefix next instruction */
-					printf("lock");
+					instruction->modifier = INSTRUCTION_MODIFIER_LOCK;
 					return 1;
 				case 0x1:
 					/* unused */
 					return 0;
 				case 0x2:
-					printf("repne");
+					instruction->modifier = INSTRUCTION_MODIFIER_REPNE;
 					return 1;
 				case 0x3:
-					printf("repe");
+					instruction->modifier = INSTRUCTION_MODIFIER_REPE;
 					return 1;
 				case 0x4:
-					printf("hlt");
+					instruction->type = INSTRUCTION_TYPE_HLT;
+					instruction->dst.type = OPERAND_NONE;
+					instruction->src.type = OPERAND_NONE;
 					return 1;
 				case 0x5:
-					printf("cmc");
+					instruction->type = INSTRUCTION_TYPE_CMC;
+					instruction->dst.type = OPERAND_NONE;
+					instruction->src.type = OPERAND_NONE;
 					return 1;
 				case 0x6:
 				case 0x7:
-					return f7_extra_ops(stream, len);
+					return f7_extra_ops(instruction, stream, len);
 				case 0x8:
-					printf("clc");
+					instruction->type = INSTRUCTION_TYPE_CLC;
+					instruction->dst.type = OPERAND_NONE;
+					instruction->src.type = OPERAND_NONE;
 					return 1;
 				case 0x9:
-					printf("stc");
+					instruction->type = INSTRUCTION_TYPE_STC;
+					instruction->dst.type = OPERAND_NONE;
+					instruction->src.type = OPERAND_NONE;
 					return 1;
 				case 0xa:
-					printf("cli");
+					instruction->type = INSTRUCTION_TYPE_CLI;
+					instruction->dst.type = OPERAND_NONE;
+					instruction->src.type = OPERAND_NONE;
 					return 1;
 				case 0xb:
-					printf("sti");
+					instruction->type = INSTRUCTION_TYPE_STI;
+					instruction->dst.type = OPERAND_NONE;
+					instruction->src.type = OPERAND_NONE;
 					return 1;
 				case 0xc:
-					printf("cld");
+					instruction->type = INSTRUCTION_TYPE_CLD;
+					instruction->dst.type = OPERAND_NONE;
+					instruction->src.type = OPERAND_NONE;
 					return 1;
 				case 0xd:
-					printf("std");
+					instruction->type = INSTRUCTION_TYPE_STD;
+					instruction->dst.type = OPERAND_NONE;
+					instruction->src.type = OPERAND_NONE;
 					return 1;
 				case 0xe:
 					return inc_dec_rm8(stream, len);
@@ -1238,16 +1497,19 @@ int main(void) {
 	printf("bits 16\n");
 
 	struct instruction instruction;
+	clear_instruction(&instruction);
 
 	for (size_t i = 0; i < program_len;) {
-		instruction.type = INSTRUCTION_TYPE_NONE;
 		size_t const step = dispatch(program + i, program_len - i, &instruction);
 		if (!step) {
 			printf("; unrecognized instruction: program[0x%zx]: 0x%02hhx\n", i, program[i]);
 			return 0;
 		}
 
-		print_instruction(&instruction);
+		if (instruction.type != INSTRUCTION_TYPE_NONE) {
+			print_instruction(&instruction);
+			clear_instruction(&instruction);
+		}
 
 		printf(" ;");
 		for (size_t j = 0; j < step; ++j) {
