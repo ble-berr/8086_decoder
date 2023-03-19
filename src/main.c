@@ -1,23 +1,53 @@
 #include <stdio.h>
 #include <unistd.h>
 #include <stdbool.h>
+#include <assert.h>
 
 typedef unsigned short u16;
 typedef signed short s16;
 typedef unsigned char u8;
 typedef signed char s8;
 
-typedef size_t (*inst_proc)(u8 const*, size_t);
-
 #define SIGN_EXTEND(n) ((n & (u8)0x80) ? (n | (u16)0xff00) : (u16)n)
 #define DATA16(data_lo, data_hi) (data_lo | (data_hi << (u16)8))
 
-char const *register_mnemonics[16] = {
+enum register_id {
+	REGISTER_AL,
+	REGISTER_CL,
+	REGISTER_DL,
+	REGISTER_BL,
+	REGISTER_AH,
+	REGISTER_CH,
+	REGISTER_DH,
+	REGISTER_BH,
+	REGISTER_AX,
+	REGISTER_CX,
+	REGISTER_DX,
+	REGISTER_BX,
+	REGISTER_SP,
+	REGISTER_BP,
+	REGISTER_SI,
+	REGISTER_DI,
+	REGISTER_ID_MAX,
+};
+char const *register_mnemonics[REGISTER_ID_MAX] = {
 	"al", "cl", "dl", "bl", "ah", "ch", "dh", "bh",
 	"ax", "cx", "dx", "bx", "sp", "bp", "si", "di",
 };
 
-static char const *eac_table[8] = {
+enum eac_base {
+	EAC_SUM_BX_SI,
+	EAC_SUM_BX_DI,
+	EAC_SUM_BP_SI,
+	EAC_SUM_BP_DI,
+	EAC_SI,
+	EAC_DI,
+	EAC_BP,
+	EAC_BX,
+	/* used to size enum indexed arrays. */
+	EAC_BASE_MAX,
+};
+static char const *eac_table[EAC_BASE_MAX] = {
 	"bx + si",
 	"bx + di",
 	"bp + si",
@@ -30,6 +60,208 @@ static char const *eac_table[8] = {
 
 #define INST_ARG_BUF_SIZE 24
 typedef char rm_buf_t[INST_ARG_BUF_SIZE];
+
+enum operand_modifier {
+	OPERAND_MODIFIER_NONE,
+};
+enum operand_type {
+	OPERAND_NONE,
+	OPERAND_REGISTER,
+	OPERAND_EFFECTIVE_ADDRESS,
+	OPERAND_DIRECT_ADDRESS,
+	OPERAND_IMMEDIATE_VALUE,
+};
+
+struct instruction_operand {
+	enum operand_modifier modifier;
+	enum operand_type type;
+	union {
+		enum register_id register_id;
+		struct eac {
+			enum eac_base base;
+			u16 offset;
+		} eac;
+		u16 direct_address;
+		u16 immediate_value;
+	};
+};
+
+enum instruction_type {
+	INSTRUCTION_TYPE_ADC,
+	INSTRUCTION_TYPE_ADD,
+	INSTRUCTION_TYPE_AND,
+	INSTRUCTION_TYPE_CMP,
+	INSTRUCTION_TYPE_DEC,
+	INSTRUCTION_TYPE_INC,
+	INSTRUCTION_TYPE_JB,
+	INSTRUCTION_TYPE_JBE,
+	INSTRUCTION_TYPE_JCXZ,
+	INSTRUCTION_TYPE_JE,
+	INSTRUCTION_TYPE_JL,
+	INSTRUCTION_TYPE_JLE,
+	INSTRUCTION_TYPE_JNB,
+	INSTRUCTION_TYPE_JNBE,
+	INSTRUCTION_TYPE_JNE,
+	INSTRUCTION_TYPE_JNL,
+	INSTRUCTION_TYPE_JNLE,
+	INSTRUCTION_TYPE_JNO,
+	INSTRUCTION_TYPE_JNP,
+	INSTRUCTION_TYPE_JNS,
+	INSTRUCTION_TYPE_JO,
+	INSTRUCTION_TYPE_JP,
+	INSTRUCTION_TYPE_JS,
+	INSTRUCTION_TYPE_LOOP,
+	INSTRUCTION_TYPE_LOOPE,
+	INSTRUCTION_TYPE_LOOPNE,
+	INSTRUCTION_TYPE_MOV,
+	INSTRUCTION_TYPE_OR,
+	INSTRUCTION_TYPE_POP,
+	INSTRUCTION_TYPE_PUSH,
+	INSTRUCTION_TYPE_RCL,
+	INSTRUCTION_TYPE_RCR,
+	INSTRUCTION_TYPE_ROL,
+	INSTRUCTION_TYPE_ROR,
+	INSTRUCTION_TYPE_SAR,
+	INSTRUCTION_TYPE_SBB,
+	INSTRUCTION_TYPE_SHL,
+	INSTRUCTION_TYPE_SHR,
+	INSTRUCTION_TYPE_SUB,
+	INSTRUCTION_TYPE_XOR,
+	/* can be used to size enum indexed arrays. */
+	INSTRUCTION_TYPE_NONE,
+};
+char const *instruction_mnemonics[INSTRUCTION_TYPE_NONE] = {
+	"adc",
+	"add",
+	"and",
+	"cmp",
+	"dec",
+	"inc",
+	"jb",
+	"jbe",
+	"jcxz",
+	"je",
+	"jl",
+	"jle",
+	"jnb",
+	"jnbe",
+	"jne",
+	"jnl",
+	"jnle",
+	"jno",
+	"jnp",
+	"jns",
+	"jo",
+	"jp",
+	"js",
+	"loop",
+	"loope",
+	"loopne",
+	"mov",
+	"or",
+	"pop",
+	"push",
+	"rcl",
+	"rcr",
+	"rol",
+	"ror",
+	"sar",
+	"sbb",
+	"shl",
+	"shr",
+	"sub",
+	"xor",
+};
+
+enum instruction_modifier {
+	INSTRUCTION_MODIFIER_LOCK,
+	INSTRUCTION_MODIFIER_NONE,
+};
+
+struct instruction {
+	enum instruction_modifier modifier;
+	enum instruction_type type;
+	struct instruction_operand dst;
+	struct instruction_operand src;
+};
+
+static void print_instruction(struct instruction const *instruction) {
+	assert(instruction != NULL);
+	if (instruction->type == INSTRUCTION_TYPE_NONE) {
+		return;
+	}
+
+	switch (instruction->modifier) {
+		case INSTRUCTION_MODIFIER_NONE:
+			break;
+		case INSTRUCTION_MODIFIER_LOCK:
+			printf("lock ");
+			break;
+	}
+	printf("%s", instruction_mnemonics[instruction->type]);
+
+	if (instruction->dst.type == OPERAND_NONE) {
+		return;
+	}
+	printf(" ");
+
+	switch (instruction->dst.modifier) {
+		case OPERAND_MODIFIER_NONE:
+			break;
+	}
+	switch (instruction->dst.type) {
+		case OPERAND_NONE:
+			return;
+		case OPERAND_REGISTER:
+			printf("%s", register_mnemonics[instruction->dst.register_id]);
+			break;
+		case OPERAND_EFFECTIVE_ADDRESS:
+			printf("[%s", eac_table[instruction->dst.eac.base]);
+			if (instruction->dst.eac.offset) {
+				printf(" + %hi", (s16)instruction->dst.eac.offset);
+			}
+			printf("]");
+			break;
+		case OPERAND_DIRECT_ADDRESS:
+			printf("[%hu]", instruction->dst.direct_address);
+			break;
+		case OPERAND_IMMEDIATE_VALUE:
+			printf("%hu", instruction->dst.immediate_value);
+			break;
+	}
+
+	if (instruction->src.type == OPERAND_NONE) {
+		return;
+	}
+	printf(", ");
+
+	switch (instruction->src.modifier) {
+		case OPERAND_MODIFIER_NONE:
+			break;
+	}
+	switch (instruction->src.type) {
+		case OPERAND_NONE:
+			return;
+		case OPERAND_REGISTER:
+			printf("%s", register_mnemonics[instruction->src.register_id]);
+			break;
+		case OPERAND_EFFECTIVE_ADDRESS:
+			printf("[%s", eac_table[instruction->src.eac.base]);
+			if (instruction->src.eac.offset) {
+				printf(" + %hi", (s16)instruction->src.eac.offset);
+			}
+			printf("]");
+			break;
+		case OPERAND_DIRECT_ADDRESS:
+			printf("[%hu]", instruction->src.direct_address);
+			break;
+		case OPERAND_IMMEDIATE_VALUE:
+			printf("%hu", instruction->src.immediate_value);
+			break;
+	}
+
+	return;
+}
 
 static size_t render_rm(rm_buf_t buf, bool wide, u8 mod, u8 rm, u8 const *stream, size_t len) {
 	u8 step = 0;
@@ -677,7 +909,9 @@ static size_t inc_dec_rm8(u8 const *stream, size_t len) {
 	return step;
 }
 
-static size_t dispatch(u8 const *stream, size_t len) {
+static size_t dispatch(u8 const *stream, size_t len, struct instruction *instruction) {
+	assert(stream);
+	assert(instruction);
 	if (len == 0) {
 		return 0;
 	}
@@ -1019,17 +1253,25 @@ int main(void) {
 	}
 
 	printf("bits 16\n");
+
+	struct instruction instruction;
+
 	for (size_t i = 0; i < program_len;) {
-		size_t const step = dispatch(program + i, program_len - i);
+		instruction.type = INSTRUCTION_TYPE_NONE;
+		size_t const step = dispatch(program + i, program_len - i, &instruction);
 		if (!step) {
 			printf("; unrecognized instruction: program[0x%zx]: 0x%02hhx\n", i, program[i]);
 			return 0;
 		}
+
+		print_instruction(&instruction);
+
 		printf(" ;");
 		for (size_t j = 0; j < step; ++j) {
 			printf(" 0x%02hhx", program[i + j]);
 		}
 		printf("\n");
+
 		i += step;
 	}
 
