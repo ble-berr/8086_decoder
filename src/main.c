@@ -606,65 +606,41 @@ static size_t mov_immediate_to_reg(u8 const *stream, size_t len) {
 	return step;
 }
 
-static size_t mov_imm2narrow(u8 const *stream, size_t len) {
-	/* TODO(benjamin): assert len. */
-	u8 mod = (stream[1] & 0xc0) >> 6;
-	u8 b = stream[1] & 0x07;
+static size_t mov_immediate_to_mem(struct instruction *instruction, bool wide, u8 const *stream, size_t len) {
+	assert(instruction);
 
-	switch (mod) {
-		case 0:
-			{
-				if (b == 6) {
-					/* direct address */
-					printf("mov [%hu], byte %hu", DATA16(stream[2], stream[3]), SIGN_EXTEND(stream[4]));
-					return 5;
-				} else {
-					printf("mov [%s], byte %hu", eac_table[b], SIGN_EXTEND(stream[2]));
-					return 3;
-				}
-			}
-		case 1:
-			printf("mov [%s + %hu], byte %hu", eac_table[b], SIGN_EXTEND(stream[2]), SIGN_EXTEND(stream[3]));
-			return 4;
-		case 2:
-			printf("mov [%s + %hu], byte %hu", eac_table[b], DATA16(stream[2], stream[3]), SIGN_EXTEND(stream[4]));
-			return 5;
-		case 3:
-			printf("mov %s, byte %hu", register_mnemonics[b], SIGN_EXTEND(stream[2]));
-			return 3;
+	instruction->type = INSTRUCTION_TYPE_MOV;
+
+	size_t step = 2;
+	if (len < step) {
+		return 0;
 	}
 
-	return 2;
-}
+	/* assert value of mb.a? */
+	struct mod_byte mb = parse_mod_byte(stream[1]);
 
-static size_t mov_imm2wide(u8 const *stream, size_t len) {
-	/* TODO(benjamin): assert len. */
-	u8 mod = (stream[1] & 0xc0) >> 6;
-	u8 b = stream[1] & 0x07;
-
-	switch (mod) {
-		case 0:
-			if (b == 6) {
-				/* direct address */
-				printf("mov [%hu], word %hu", DATA16(stream[2], stream[3]), DATA16(stream[4], stream[5]));
-				return 6;
-			} else {
-				printf("mov [%s], word %hu", eac_table[b], DATA16(stream[2], stream[3]));
-				return 4;
-			}
-		case 1:
-			printf("mov [%s + %hu], word %hu", eac_table[b], SIGN_EXTEND(stream[2]), DATA16(stream[3], stream[4]));
-			return 5;
-		case 2:
-			printf("mov [%s + %hu], word %hu", eac_table[b], DATA16(stream[2], stream[3]), DATA16(stream[4], stream[5]));
-			return 6;
-		case 3:
-			b |= 0x08;
-			printf("mov %s, word %hu", register_mnemonics[b], DATA16(stream[2], stream[3]));
-			return 4;
+	step += process_mod_operand(&instruction->dst, wide, mb.mod, mb.b, stream + step, len - step);
+	if (len < step) {
+		return 0;
 	}
 
-	return 2;
+	instruction->src.type = OPERAND_IMMEDIATE_VALUE;
+	instruction->src.width = wide ? OPERAND_WIDTH_WORD : OPERAND_WIDTH_BYTE;
+	if (wide) {
+		step += 2;
+		if (len < step) {
+			return 0;
+		}
+		instruction->src.immediate_value = DATA16(stream[step - 2], stream[step - 1]);
+	} else {
+		step += 1;
+		if (len < step) {
+			return 0;
+		}
+		instruction->src.immediate_value = stream[step - 1];
+	}
+
+	return step;
 }
 
 static size_t op_acc_immediate(u8 const *stream, size_t len, char const *mnemonic) {
@@ -1313,9 +1289,9 @@ static size_t dispatch(u8 const *stream, size_t len, struct instruction *instruc
 				case 0x5:
 					return load_rm_to_r("lds", stream, len);
 				case 0x6:
-					return mov_imm2narrow(stream, len);
+					return mov_immediate_to_mem(instruction, false, stream, len);
 				case 0x7:
-					return mov_imm2wide(stream, len);
+					return mov_immediate_to_mem(instruction, true, stream, len);
 				case 0x8:
 				case 0x9:
 					/* unused */
