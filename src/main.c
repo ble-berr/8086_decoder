@@ -372,6 +372,26 @@ static void print_instruction(struct instruction const *instruction) {
 	return;
 }
 
+/*
+ * A mod byte is a recurring structured byte in the x86 instruction set:
+ * bits : |7 6|5 4 3|2 1 0|
+ * field: |mod|  a  |  b  |
+ */
+struct mod_byte {
+	u8 mod;
+	u8 a;
+	u8 b;
+};
+
+static struct mod_byte parse_mod_byte(u8 byte) {
+	struct mod_byte b = {
+		(byte & 0300u) >> 6,
+		(byte & 0070u) >> 3,
+		(byte & 0007u) >> 0,
+	};
+	return b;
+}
+
 static size_t process_mod_operand(
 		struct instruction_operand *operand,
 		bool wide,
@@ -523,30 +543,41 @@ static size_t decode_r_vs_rm(struct instruction *instruction, u8 const *stream, 
 	bool const wide = (stream[0] & 0x1u) != 0;
 	bool const xchg = (stream[0] & 0x2u) != 0;
 
-	u8 const mod = (stream[1] >> 6);
-	u8 r = (stream[1] >> 3u) & 07u;
-	u8 const rm = stream[1] & 07u;
+	struct mod_byte op_fields = parse_mod_byte(stream[1]);
 
+	/* a is a register */
 	if (wide) {
-		r |= 010u;
+		op_fields.a |= 010u;
 	}
 
 	if (xchg) {
 		instruction->type = INSTRUCTION_TYPE_XCHG;
 		instruction->dst.type = OPERAND_REGISTER;
-		instruction->dst.register_id = r;
-		step += process_mod_operand(&instruction->src, wide, mod, rm, stream + step, len - step);
+		instruction->dst.register_id = op_fields.a;
+		step += process_mod_operand(
+				&instruction->src,
+				wide,
+				op_fields.mod,
+				op_fields.b,
+				stream + step,
+				len - step);
 		if (len < step) {
 			return step;
 		}
 	} else {
 		instruction->type = INSTRUCTION_TYPE_TEST;
-		step += process_mod_operand(&instruction->dst, wide, mod, rm, stream + step, len - step);
+		step += process_mod_operand(
+				&instruction->dst,
+				wide,
+				op_fields.mod,
+				op_fields.b,
+				stream + step,
+				len - step);
 		if (len < step) {
 			return step;
 		}
 		instruction->src.type = OPERAND_REGISTER;
-		instruction->src.register_id = r;
+		instruction->src.register_id = op_fields.a;
 	}
 	return step;
 }
