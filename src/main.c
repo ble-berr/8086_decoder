@@ -1154,13 +1154,11 @@ static size_t dispatch(u8 const *stream, size_t len, struct instruction *instruc
 			instruction->type = (stream[0] & 8u) ? INSTRUCTION_TYPE_DEC : INSTRUCTION_TYPE_INC;
 			instruction->dst.type = OPERAND_REGISTER;
 			instruction->dst.register_id = (stream[0] & 7u) | 8u;
-			instruction->src.type = OPERAND_NONE;
 			return 1;
 		case 0x5:
 			instruction->type = (stream[0] & 8u) ? INSTRUCTION_TYPE_POP : INSTRUCTION_TYPE_PUSH;
 			instruction->dst.type = OPERAND_REGISTER;
 			instruction->dst.register_id = (stream[0] & 7u) | 8u;
-			instruction->src.type = OPERAND_NONE;
 			return 1;
 		case 0x6:
 			/* unused. */
@@ -1215,41 +1213,27 @@ static size_t dispatch(u8 const *stream, size_t len, struct instruction *instruc
 					return 1;
 				case 0x8:
 					instruction->type = INSTRUCTION_TYPE_CBW;
-					instruction->dst.type = OPERAND_NONE;
-					instruction->src.type = OPERAND_NONE;
 					return 1;
 				case 0x9:
 					instruction->type = INSTRUCTION_TYPE_CWD;
-					instruction->dst.type = OPERAND_NONE;
-					instruction->src.type = OPERAND_NONE;
 					return 1;
 				case 0xa:
 					/* TODO(benjamin): not implemented: call */
 					return 0;
 				case 0xb:
 					instruction->type = INSTRUCTION_TYPE_WAIT;
-					instruction->dst.type = OPERAND_NONE;
-					instruction->src.type = OPERAND_NONE;
 					return 1;
 				case 0xc:
 					instruction->type = INSTRUCTION_TYPE_PUSHF;
-					instruction->dst.type = OPERAND_NONE;
-					instruction->src.type = OPERAND_NONE;
 					return 1;
 				case 0xd:
 					instruction->type = INSTRUCTION_TYPE_POPF;
-					instruction->dst.type = OPERAND_NONE;
-					instruction->src.type = OPERAND_NONE;
 					return 1;
 				case 0xe:
 					instruction->type = INSTRUCTION_TYPE_SAHF;
-					instruction->dst.type = OPERAND_NONE;
-					instruction->src.type = OPERAND_NONE;
 					return 1;
 				case 0xf:
 					instruction->type = INSTRUCTION_TYPE_LAHF;
-					instruction->dst.type = OPERAND_NONE;
-					instruction->src.type = OPERAND_NONE;
 					return 1;
 				default:
 					/* unreachable. */
@@ -1306,8 +1290,6 @@ static size_t dispatch(u8 const *stream, size_t len, struct instruction *instruc
 					return 3;
 				case 0x3:
 					instruction->type = INSTRUCTION_TYPE_RET;
-					instruction->dst.type = OPERAND_NONE;
-					instruction->src.type = OPERAND_NONE;
 					return 1;
 				case 0x4:
 					return load_rm_to_r("les", stream, len);
@@ -1331,8 +1313,6 @@ static size_t dispatch(u8 const *stream, size_t len, struct instruction *instruc
 				case 0xb:
 					/* NOTE(benjamin): again?? intersegment? */
 					instruction->type = INSTRUCTION_TYPE_RET;
-					instruction->dst.type = OPERAND_NONE;
-					instruction->src.type = OPERAND_NONE;
 					return 1;
 				case 0xc:
 					printf("int 3");
@@ -1345,13 +1325,9 @@ static size_t dispatch(u8 const *stream, size_t len, struct instruction *instruc
 					return 2;
 				case 0xe:
 					instruction->type = INSTRUCTION_TYPE_INTO;
-					instruction->dst.type = OPERAND_NONE;
-					instruction->src.type = OPERAND_NONE;
 					return 1;
 				case 0xf:
 					instruction->type = INSTRUCTION_TYPE_IRET;
-					instruction->dst.type = OPERAND_NONE;
-					instruction->src.type = OPERAND_NONE;
 					return 1;
 				default:
 					/* not implemented. */
@@ -1367,22 +1343,16 @@ static size_t dispatch(u8 const *stream, size_t len, struct instruction *instruc
 				case 0x4:
 					/* NOTE(benjamin): assert stream[1] == 0x0a ? */
 					instruction->type = INSTRUCTION_TYPE_AAM;
-					instruction->dst.type = OPERAND_NONE;
-					instruction->src.type = OPERAND_NONE;
 					return 2;
 				case 0x5:
 					/* NOTE(benjamin): assert stream[1] == 0x0a ? */
 					instruction->type = INSTRUCTION_TYPE_AAD;
-					instruction->dst.type = OPERAND_NONE;
-					instruction->src.type = OPERAND_NONE;
 					return 2;
 				case 0x6:
 					/* unused */
 					return 0;
 				case 0x7:
 					instruction->type = INSTRUCTION_TYPE_XLAT;
-					instruction->dst.type = OPERAND_NONE;
-					instruction->src.type = OPERAND_NONE;
 					return 1;
 				case 0x8:
 				case 0x9:
@@ -1448,46 +1418,30 @@ static size_t dispatch(u8 const *stream, size_t len, struct instruction *instruc
 					return 1;
 				case 0x4:
 					instruction->type = INSTRUCTION_TYPE_HLT;
-					instruction->dst.type = OPERAND_NONE;
-					instruction->src.type = OPERAND_NONE;
 					return 1;
 				case 0x5:
 					instruction->type = INSTRUCTION_TYPE_CMC;
-					instruction->dst.type = OPERAND_NONE;
-					instruction->src.type = OPERAND_NONE;
 					return 1;
 				case 0x6:
 				case 0x7:
 					return f7_extra_ops(instruction, stream, len);
 				case 0x8:
 					instruction->type = INSTRUCTION_TYPE_CLC;
-					instruction->dst.type = OPERAND_NONE;
-					instruction->src.type = OPERAND_NONE;
 					return 1;
 				case 0x9:
 					instruction->type = INSTRUCTION_TYPE_STC;
-					instruction->dst.type = OPERAND_NONE;
-					instruction->src.type = OPERAND_NONE;
 					return 1;
 				case 0xa:
 					instruction->type = INSTRUCTION_TYPE_CLI;
-					instruction->dst.type = OPERAND_NONE;
-					instruction->src.type = OPERAND_NONE;
 					return 1;
 				case 0xb:
 					instruction->type = INSTRUCTION_TYPE_STI;
-					instruction->dst.type = OPERAND_NONE;
-					instruction->src.type = OPERAND_NONE;
 					return 1;
 				case 0xc:
 					instruction->type = INSTRUCTION_TYPE_CLD;
-					instruction->dst.type = OPERAND_NONE;
-					instruction->src.type = OPERAND_NONE;
 					return 1;
 				case 0xd:
 					instruction->type = INSTRUCTION_TYPE_STD;
-					instruction->dst.type = OPERAND_NONE;
-					instruction->src.type = OPERAND_NONE;
 					return 1;
 				case 0xe:
 					return inc_dec_rm8(stream, len);
