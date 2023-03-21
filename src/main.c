@@ -488,48 +488,30 @@ static size_t render_rm(rm_buf_t buf, bool wide, u8 mod, u8 rm, u8 const *stream
 	return step;
 }
 
-static size_t render_r_to_rm(rm_buf_t r_buf, rm_buf_t rm_buf, u8 const *stream, size_t len) {
-	u8 step = 2;
+static size_t decode_r_to_rm(struct instruction *instruction, u8 const *stream, size_t len) {
+	assert(instruction);
+	assert(stream);
+
+	size_t step = 2;
 	if (len < step) {
 		return 0;
 	}
 
-	bool const wide = (stream[0] & 0x1) != 0;
-	u8 const mod = (stream[1] >> 6);
-	u8 r = (stream[1] >> 3) & 0x7;
-	u8 rm = stream[1] & 0x07;
-
-	if (wide) {
-		r |= 0x08;
-	}
-	snprintf(r_buf, INST_ARG_BUF_SIZE, "%s", register_mnemonics[r]);
-
-	step += render_rm(rm_buf, wide, mod, rm, stream + step, len - step);
-	if (len < step) {
-		return 0;
-	}
-
-	return step;
-}
-
-static size_t decode_r_to_rm(u8 const *stream, size_t len, char const *inst) {
-	rm_buf_t r_buf;
-	rm_buf_t rm_buf;
-	u8 step = render_r_to_rm(r_buf, rm_buf, stream, len);
-
-	if (step == 0) {
-		return 0;
-	}
-
-	bool const reverse = (stream[0] & 0x2) != 0;
+	bool const reverse = (stream[0] & 0x2u) != 0;
+	bool const wide = (stream[0] & 0x1u) != 0;
+	struct mod_byte mb = parse_mod_byte(stream[1]);
 
 	if (reverse) {
-		printf("%s %s, %s", inst, r_buf, rm_buf);
+		instruction->dst.type = OPERAND_REGISTER;
+		instruction->dst.register_id = wide ? (mb.a | 0x08u) : mb.a;
+		step += process_mod_operand(&instruction->src, wide, mb.mod, mb.b, stream + step, len - step);
 	} else {
-		printf("%s %s, %s", inst, rm_buf, r_buf);
+		step += process_mod_operand(&instruction->dst, wide, mb.mod, mb.b, stream + step, len - step);
+		instruction->src.type = OPERAND_REGISTER;
+		instruction->src.register_id = wide ? (mb.a | 0x08u) : mb.a;
 	}
 
-	return step;
+	return (len < step) ? 0 : step;
 }
 
 static size_t decode_r_vs_rm(struct instruction *instruction, u8 const *stream, size_t len) {
@@ -664,6 +646,16 @@ static size_t op_acc_immediate(u8 const *stream, size_t len, char const *mnemoni
 
 char const *arithmetic_mnemonics[8] = {
 	"add", "or", "adc", "sbb", "and", "sub", "xor", "cmp"
+};
+static enum instruction_type const arithmetic_instructions[8] = {
+	INSTRUCTION_TYPE_ADD,
+	INSTRUCTION_TYPE_OR,
+	INSTRUCTION_TYPE_ADC,
+	INSTRUCTION_TYPE_SBB,
+	INSTRUCTION_TYPE_AND,
+	INSTRUCTION_TYPE_SUB,
+	INSTRUCTION_TYPE_XOR,
+	INSTRUCTION_TYPE_CMP
 };
 
 static size_t op_rm_immediate(u8 const *stream, size_t len) {
@@ -1118,7 +1110,8 @@ static size_t dispatch(u8 const *stream, size_t len, struct instruction *instruc
 				case 1:
 				case 2:
 				case 3:
-					return decode_r_to_rm(stream, len, arithmetic_mnemonics[(stream[0] & 070u) >> 3]);
+					instruction->type = arithmetic_instructions[(stream[0] & 070u) >> 3];
+					return decode_r_to_rm(instruction, stream, len);
 				case 4:
 				case 5:
 					return op_acc_immediate(stream, len, arithmetic_mnemonics[(stream[0] & 070u) >> 3]);
@@ -1162,7 +1155,8 @@ static size_t dispatch(u8 const *stream, size_t len, struct instruction *instruc
 				case 0x9:
 				case 0xa:
 				case 0xb:
-					return decode_r_to_rm(stream, len, "mov");
+					instruction->type = INSTRUCTION_TYPE_MOV;
+					return decode_r_to_rm(instruction, stream, len);
 				case 0xc:
 					return mov_seg_to_rm(stream, len);
 				case 0xd:
