@@ -321,7 +321,7 @@ static void print_instruction_operand(struct instruction_operand const *operand)
 
 	switch (operand->type) {
 		case OPERAND_NONE:
-			return;
+			break;
 		case OPERAND_REGISTER:
 			printf("%s", register_mnemonics[operand->register_id]);
 			break;
