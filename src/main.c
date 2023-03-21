@@ -628,19 +628,38 @@ static size_t mov_immediate_to_mem(struct instruction *instruction, bool wide, u
 	return step;
 }
 
-static size_t op_acc_immediate(u8 const *stream, size_t len, char const *mnemonic) {
-	bool const wide = (stream[0] & 0x1u) != 0;
-	u8 const step = 2 + wide;
+static size_t op_acc_immediate(struct instruction *instruction, u8 const *stream, size_t len) {
+	assert(instruction);
+	assert(stream);
+
+	size_t step = 1;
 	if (len < step) {
 		return 0;
 	}
 
+	bool const wide = (stream[0] & 0x1u) != 0;
+
+	instruction->dst.type = OPERAND_REGISTER;
+	instruction->src.type = OPERAND_IMMEDIATE_VALUE;
+
 	if (wide) {
-		printf("%s ax, word %hu", mnemonic, DATA16(stream[1], stream[2]));
+		step += 2;
+		if (len < step) {
+			return 0;
+		}
+		instruction->dst.register_id = REGISTER_AX;
+		instruction->src.immediate_value = DATA16(stream[1], stream[2]);
+		instruction->src.width = OPERAND_WIDTH_WORD;
 	} else {
-		/* TODO(benjamin): standard compliant signed conversion. */
-		printf("%s al, byte %hhi", mnemonic, (s8)stream[1]);
+		step += 1;
+		if (len < step) {
+			return 0;
+		}
+		instruction->dst.register_id = REGISTER_AL;
+		instruction->src.immediate_value = stream[1];
+		instruction->src.width = OPERAND_WIDTH_BYTE;
 	}
+
 	return step;
 }
 
@@ -1114,7 +1133,8 @@ static size_t dispatch(u8 const *stream, size_t len, struct instruction *instruc
 					return decode_r_to_rm(instruction, stream, len);
 				case 4:
 				case 5:
-					return op_acc_immediate(stream, len, arithmetic_mnemonics[(stream[0] & 070u) >> 3]);
+					instruction->type = arithmetic_instructions[(stream[0] & 070u) >> 3];
+					return op_acc_immediate(instruction, stream, len);
 				case 6:
 				case 7:
 					return misc_0x30_ops(stream, len);
