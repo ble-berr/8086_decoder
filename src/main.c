@@ -67,6 +67,7 @@ enum operand_type {
 	OPERAND_EFFECTIVE_ADDRESS,
 	OPERAND_DIRECT_ADDRESS,
 	OPERAND_IMMEDIATE_VALUE,
+	OPERAND_JUMP_OFFSET,
 };
 
 enum operand_width {
@@ -86,6 +87,7 @@ struct instruction_operand {
 		} eac;
 		u16 direct_address;
 		u16 immediate_value;
+		s16 jump_offset;
 	};
 };
 
@@ -337,6 +339,9 @@ static void print_instruction_operand(struct instruction_operand const *operand)
 			break;
 		case OPERAND_IMMEDIATE_VALUE:
 			printf("%hu", operand->immediate_value);
+			break;
+		case OPERAND_JUMP_OFFSET:
+			printf("$%+hi", operand->jump_offset);
 			break;
 	}
 }
@@ -738,33 +743,36 @@ static size_t mov_acc2mem(bool wide, u8 const *stream, size_t len) {
 	return 3;
 }
 
-static char const *const conditional_jump_mnemonics[0x10] = {
-	"jo",
-	"jno",
-	"jb",
-	"jnb",
-	"je",
-	"jne",
-	"jbe",
-	"jnbe",
-	"js",
-	"jns",
-	"jp",
-	"jnp",
-	"jl",
-	"jnl",
-	"jle",
-	"jnle",
+static enum instruction_type const conditional_jump_instructions[0x10] = {
+	INSTRUCTION_TYPE_JO,
+	INSTRUCTION_TYPE_JNO,
+	INSTRUCTION_TYPE_JB,
+	INSTRUCTION_TYPE_JNB,
+	INSTRUCTION_TYPE_JE,
+	INSTRUCTION_TYPE_JNE,
+	INSTRUCTION_TYPE_JBE,
+	INSTRUCTION_TYPE_JNBE,
+	INSTRUCTION_TYPE_JS,
+	INSTRUCTION_TYPE_JNS,
+	INSTRUCTION_TYPE_JP,
+	INSTRUCTION_TYPE_JNP,
+	INSTRUCTION_TYPE_JL,
+	INSTRUCTION_TYPE_JNL,
+	INSTRUCTION_TYPE_JLE,
+	INSTRUCTION_TYPE_JNLE,
 };
 
-static size_t conditional_jump(u8 const *stream, size_t len) {
+static size_t conditional_jump(struct instruction *instruction, u8 const *stream, size_t len) {
 	if (len < 2) {
 		return 0;
 	}
 	/* TODO(benjamin): standard compliant signed conversion. */
 	/* TODO(benjamin): test and handle overflow */
 	s8 const ip_inc_8 = stream[1] + (u8)2;
-	printf("%s $%+hhi", conditional_jump_mnemonics[stream[0] & 0xf], ip_inc_8);
+
+	instruction->type = conditional_jump_instructions[stream[0] & 0x0fu];
+	instruction->dst.type = OPERAND_JUMP_OFFSET;
+	instruction->dst.jump_offset = ip_inc_8;
 	return 2;
 }
 
@@ -1158,7 +1166,7 @@ static size_t dispatch(u8 const *stream, size_t len, struct instruction *instruc
 			/* unused. */
 			return 0;
 		case 0x7:
-			return conditional_jump(stream, len);
+			return conditional_jump(instruction, stream, len);
 		case 0x8:
 			switch (stream[0] & 0xf) {
 				case 0x0:
