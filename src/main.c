@@ -682,50 +682,47 @@ static enum instruction_type const arithmetic_instructions[8] = {
 	INSTRUCTION_TYPE_CMP
 };
 
-static size_t op_rm_immediate(u8 const *stream, size_t len) {
-	if (len == 0) {
+static size_t op_immediate_to_rm(struct instruction *instruction, u8 const *stream, size_t len) {
+	size_t step = 2;
+	if (len < step) {
 		return 0;
 	}
 
 	bool const sign_extend = (stream[0] & 0x2u) != 0;
 	bool const wide = (stream[0] & 0x1u) != 0;
-	u8 step = 2;
+
+	struct mod_byte mb = parse_mod_byte(stream[1]);
+
+	step += process_mod_operand(&instruction->dst, wide, mb.mod, mb.b, stream + step, len - step);
 	if (len < step) {
 		return 0;
 	}
+	instruction->dst.width = wide ? OPERAND_WIDTH_WORD : OPERAND_WIDTH_BYTE;
 
-	u8 const mod = stream[1] >> 6;
-	u8 const op = stream[1] >> 3 & 0x7;
-	u8 const rm = stream[1] & 0x7;
+	instruction->src.type = OPERAND_IMMEDIATE_VALUE;
 
-	rm_buf_t rm_buf;
-	step += render_rm(rm_buf, wide, mod, rm, stream + step, len - step);
-	if (len < step) {
-		return 0;
-	}
-
-	u16 immediate;
 	if (sign_extend) {
 		step += 1;
 		if (len < step) {
 			return 0;
 		}
-		immediate = SIGN_EXTEND(stream[step - 1]);
+		instruction->src.immediate_value = SIGN_EXTEND(stream[step - 1]);
 	} else if (wide) {
 		step += 2;
 		if (len < step) {
 			return 0;
 		}
-		immediate = DATA16(stream[step - 2], stream[step - 1]);
+		instruction->src.immediate_value = DATA16(stream[step - 2], stream[step - 1]);
 	} else {
 		step += 1;
 		if (len < step) {
 			return 0;
 		}
-		immediate = stream[step - 1];
+		instruction->src.immediate_value = stream[step - 1];
 	}
 
-	printf("%s %s %s, %hu", arithmetic_mnemonics[op], wide?"word":"byte", rm_buf, immediate);
+	instruction->type = arithmetic_instructions[mb.a];
+
 	return step;
 }
 
@@ -1171,7 +1168,7 @@ static size_t dispatch(u8 const *stream, size_t len, struct instruction *instruc
 				case 0x1:
 				case 0x2:
 				case 0x3:
-					return op_rm_immediate(stream, len);
+					return op_immediate_to_rm(instruction, stream, len);
 				case 0x4:
 				case 0x5:
 				case 0x6:
